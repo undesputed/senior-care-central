@@ -50,7 +50,7 @@ export default function ProviderSignupPage() {
         password: values.password,
         options: {
           data: { owner_name: values.ownerName, role: "provider" },
-          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/provider/onboarding/step-1` : undefined,
+          emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
         },
       });
       if (error) {
