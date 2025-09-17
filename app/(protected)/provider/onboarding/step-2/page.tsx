@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import ServicesForm from "./ServicesForm";
+import OnboardingStepper from "@/components/onboarding/OnboardingStepper";
 
 export default async function OnboardingStep2Page() {
   const supabase = await createClient();
@@ -18,6 +19,7 @@ export default async function OnboardingStep2Page() {
             <CardDescription>Select at least one service you provide.</CardDescription>
           </CardHeader>
           <CardContent>
+            <OnboardingStepper />
             <ServicesForm />
           </CardContent>
         </Card>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,6 +45,7 @@ type FormValues = z.infer<typeof schema>;
 
 export default function Step1Form({ email }: { email: string | null }) {
   const supabase = createClient();
+  const router = useRouter();
   const [initializing, setInitializing] = useState(true);
   const [saving, setSaving] = useState(false);
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -155,9 +157,35 @@ export default function Step1Form({ email }: { email: string | null }) {
       toast.error("Please fix errors before continuing");
       return;
     }
-    // One final save
-    debouncedSave(watched);
-    toast.success("Saved. Next step coming soon.");
+    // Final synchronous save then navigate
+    setSaving(true);
+    const citiesArray = watched.cities.split(",").map((s) => s.trim()).filter(Boolean);
+    const postalArray = watched.postal_codes.split(",").map((s) => s.trim()).filter(Boolean);
+    const year = watched.year_established ? Number(watched.year_established) : null;
+    const radius = watched.coverage_radius_km ? Number(watched.coverage_radius_km) : null;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSaving(false); return; }
+    const { error } = await supabase
+      .from("agencies")
+      .update({
+        business_name: watched.business_name,
+        business_registration_number: watched.business_registration_number || null,
+        year_established: year,
+        website: watched.website || null,
+        phone: watched.phone,
+        admin_contact_name: watched.admin_contact_name,
+        cities: citiesArray,
+        postal_codes: postalArray,
+        coverage_radius_km: radius,
+        email: email ?? null,
+      })
+      .eq("owner_id", user.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Save failed", { description: error.message });
+      return;
+    }
+    router.push("/provider/onboarding/step-2");
   };
 
   return (

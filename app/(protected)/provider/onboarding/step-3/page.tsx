@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import StrengthsForm from "./StrengthsForm";
+import OnboardingStepper from "@/components/onboarding/OnboardingStepper";
 
 export default async function OnboardingStep3Page() {
   const supabase = await createClient();
@@ -17,6 +18,7 @@ export default async function OnboardingStep3Page() {
             <CardDescription>Allocate up to 20 points across selected services.</CardDescription>
           </CardHeader>
           <CardContent>
+            <OnboardingStepper />
             <StrengthsForm />
           </CardContent>
         </Card>

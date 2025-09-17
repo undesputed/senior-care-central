@@ -14,9 +14,9 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     (async () => {
-      // Supabase handles magic link confirmation automatically on redirect if the token is in the URL.
-      // We can ensure profile creation and then redirect to onboarding.
+      // Exchange the auth code from the email link for a session
       try {
+        await supabase.auth.exchangeCodeForSession(window.location.href);
         await fetch('/api/profile/ensure', { method: 'POST' });
         toast.success('Email confirmed');
         router.replace('/provider/onboarding/step-1');

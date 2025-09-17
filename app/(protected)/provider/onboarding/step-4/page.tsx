@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import RatesForm from "./RatesForm";
+import OnboardingStepper from "@/components/onboarding/OnboardingStepper";
 
 export default async function OnboardingStep4Page() {
   const supabase = await createClient();
@@ -17,6 +18,7 @@ export default async function OnboardingStep4Page() {
             <CardDescription>Provide min and max rates for each selected service.</CardDescription>
           </CardHeader>
           <CardContent>
+            <OnboardingStepper />
             <RatesForm />
           </CardContent>
         </Card>

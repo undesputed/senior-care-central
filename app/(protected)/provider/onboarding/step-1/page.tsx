@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import Step1Form from "./Step1Form";
+import OnboardingStepper from "@/components/onboarding/OnboardingStepper";
 
 export default async function OnboardingStep1Page() {
   const supabase = await createClient();
@@ -35,7 +36,8 @@ export default async function OnboardingStep1Page() {
             <CardDescription>We&apos;ll collect your business details to build your profile.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Step1Form email={user.email} />
+            <OnboardingStepper />
+            <Step1Form email={user.email ?? null} />
           </CardContent>
         </Card>
       </div>
