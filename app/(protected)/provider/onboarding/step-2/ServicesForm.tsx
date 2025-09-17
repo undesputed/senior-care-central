@@ -20,12 +20,25 @@ export default function ServicesForm() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      
+      // First get the agency ID
+      const { data: agency } = await supabase
+        .from('agencies')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+      
+      if (!agency) {
+        setLoading(false);
+        return;
+      }
+      
+      // Then get services and existing selections
       const [{ data: svc }, { data: existing }] = await Promise.all([
         supabase.from('services').select('id,slug,name').order('name'),
-        supabase.from('agency_services').select('service_id').in('agency_id', (
-          supabase.from('agencies').select('id').eq('owner_id', user.id)
-        ))
+        supabase.from('agency_services').select('service_id').eq('agency_id', agency.id)
       ]);
+      
       if (svc) setServices(svc);
       if (existing) {
         const map: Record<string, boolean> = {};
