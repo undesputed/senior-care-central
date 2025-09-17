@@ -83,10 +83,11 @@ export default function ServicesForm() {
         {services.map((s) => (
           <label key={s.id} className="flex items-center gap-3">
             <Checkbox id={s.slug} checked={!!selected[s.id]} onCheckedChange={(v) => toggle(s.id, Boolean(v))} />
-            <span>{s.name}</span>
+            <span>{s.name} <span className="text-red-500">*</span></span>
           </label>
         ))}
       </div>
+      <p className="text-sm text-muted-foreground">* Select at least one service</p>
       <div className="flex items-center justify-between">
         <Link href="/provider/onboarding/step-1" className="underline">Back</Link>
         <Button onClick={onSaveNext} disabled={saving} style={{ backgroundColor: "#9bc3a2" }}>Next</Button>

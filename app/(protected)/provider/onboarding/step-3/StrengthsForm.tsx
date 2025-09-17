@@ -88,7 +88,7 @@ export default function StrengthsForm() {
         {services.map((s) => (
           <div key={s.id}>
             <div className="mb-2 flex items-center justify-between">
-              <span>{s.name}</span>
+              <span>{s.name} <span className="text-red-500">*</span></span>
               <span className="text-sm text-muted-foreground">{points[s.id] ?? 0}/5</span>
             </div>
             <Slider
@@ -100,6 +100,7 @@ export default function StrengthsForm() {
           </div>
         ))}
       </div>
+      <p className="text-sm text-muted-foreground">* Allocate points across your selected services (max 20 total)</p>
       <div className="flex items-center justify-between">
         <Link href="/provider/onboarding/step-2" className="underline">Back</Link>
         <Button onClick={onSaveNext} disabled={saving || total > MAX_TOTAL} style={{ backgroundColor: "#9bc3a2" }}>Next</Button>

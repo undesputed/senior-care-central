@@ -125,7 +125,7 @@ export default function RatesForm() {
           const v = values[s.id] ?? { min: '', max: '' };
           return (
             <div key={s.id} className="grid gap-2">
-              <div className="font-medium">{s.name}</div>
+              <div className="font-medium">{s.name} <span className="text-red-500">*</span></div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor={`min-${s.id}`}>Min</Label>
@@ -141,6 +141,7 @@ export default function RatesForm() {
           );
         })}
       </div>
+      <p className="text-sm text-muted-foreground">* Provide rates for at least one service</p>
 
       <div className="flex items-center justify-between">
         <Link href="/provider/onboarding/step-3" className="underline">Back</Link>

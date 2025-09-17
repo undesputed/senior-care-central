@@ -68,7 +68,7 @@ export default function UploadsForm() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="font-medium mb-2">Documents (PDF, JPG, PNG – up to 5 files)</p>
+        <p className="font-medium mb-2">Documents (PDF, JPG, PNG – up to 5 files) <span className="text-red-500">*</span></p>
         <input ref={docInputRef} type="file" multiple accept="application/pdf,image/jpeg,image/png" onChange={(e) => {
           if (!e.target.files) return;
           const files = validateFiles(e.target.files, 'doc');
@@ -86,6 +86,7 @@ export default function UploadsForm() {
           if (photoInputRef.current) photoInputRef.current.value = '';
         }} />
       </div>
+      <p className="text-sm text-muted-foreground">* Upload at least one document (business permit, certifications, etc.)</p>
 
       <div>
         <Button disabled={uploading} style={{ backgroundColor: "#9bc3a2" }}>Finish</Button>

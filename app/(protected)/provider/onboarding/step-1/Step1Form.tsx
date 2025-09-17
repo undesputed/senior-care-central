@@ -38,7 +38,7 @@ const schema = z.object({
     .string()
     .optional()
     .or(z.literal(""))
-    .refine((v) => (v === "" ? true : /^\d+$/.test(v)), "Enter a whole number (km)"),
+    .refine((v) => (v === "" ? true : /^\d+$/.test(v ?? "")), "Enter a whole number (km)"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -94,10 +94,10 @@ export default function Step1Form({ email }: { email: string | null }) {
         setValue("website", data.website ?? "");
         setValue("phone", data.phone ?? "");
         setValue("admin_contact_name", data.admin_contact_name ?? "");
-        setValue("cities", Array.isArray(data.cities) ? data.cities.join(", ") : data.cities ?? "");
+        setValue("cities", Array.isArray(data.cities) ? data.cities.join(", ") : (data.cities ?? ""));
         setValue(
           "postal_codes",
-          Array.isArray(data.postal_codes) ? data.postal_codes.join(", ") : data.postal_codes ?? ""
+          Array.isArray(data.postal_codes) ? data.postal_codes.join(", ") : (data.postal_codes ?? "")
         );
         setValue("coverage_radius_km", data.coverage_radius_km ? String(data.coverage_radius_km) : "");
       }
@@ -194,7 +194,7 @@ export default function Step1Form({ email }: { email: string | null }) {
 
       <div className="grid gap-4">
         <div className="space-y-2">
-          <Label htmlFor="business_name">Business Name</Label>
+          <Label htmlFor="business_name">Business Name <span className="text-red-500">*</span></Label>
           <Input id="business_name" placeholder="Acme Senior Care" {...register("business_name")} aria-invalid={!!errors.business_name} />
           {errors.business_name && <p className="text-sm text-red-600" role="alert">{errors.business_name.message}</p>}
         </div>
@@ -218,7 +218,7 @@ export default function Step1Form({ email }: { email: string | null }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="phone">Phone Number</Label>
+          <Label htmlFor="phone">Phone Number <span className="text-red-500">*</span></Label>
           <Input id="phone" placeholder="(555) 123-4567" {...register("phone")} aria-invalid={!!errors.phone} />
           {errors.phone && <p className="text-sm text-red-600" role="alert">{errors.phone.message}</p>}
         </div>
@@ -229,19 +229,19 @@ export default function Step1Form({ email }: { email: string | null }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="admin_contact_name">Admin Contact Name</Label>
+          <Label htmlFor="admin_contact_name">Admin Contact Name <span className="text-red-500">*</span></Label>
           <Input id="admin_contact_name" placeholder="Jane Doe" {...register("admin_contact_name")} aria-invalid={!!errors.admin_contact_name} />
           {errors.admin_contact_name && <p className="text-sm text-red-600" role="alert">{errors.admin_contact_name.message}</p>}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="cities">City / Cities of Service (comma separated)</Label>
+          <Label htmlFor="cities">City / Cities of Service (comma separated) <span className="text-red-500">*</span></Label>
           <Input id="cities" placeholder="San Jose, Palo Alto" {...register("cities")} aria-invalid={!!errors.cities} />
           {errors.cities && <p className="text-sm text-red-600" role="alert">{errors.cities.message}</p>}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="postal_codes">Postal Code(s) or Coverage Radius (comma separated for codes)</Label>
+          <Label htmlFor="postal_codes">Postal Code(s) or Coverage Radius (comma separated for codes) <span className="text-red-500">*</span></Label>
           <Input id="postal_codes" placeholder="95112, 95113" {...register("postal_codes")} aria-invalid={!!errors.postal_codes} />
           {errors.postal_codes && <p className="text-sm text-red-600" role="alert">{errors.postal_codes.message}</p>}
         </div>
