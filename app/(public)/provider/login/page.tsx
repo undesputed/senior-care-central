@@ -50,6 +50,8 @@ export default function ProviderLoginPage() {
         toast.error("Login failed", { description: error.message });
         return;
       }
+      // Ensure profile row exists
+      await fetch('/api/profile/ensure', { method: 'POST' })
       toast.success("Welcome back! Redirecting...");
       router.replace("/provider/dashboard");
     } finally {

@@ -1,6 +1,38 @@
 -- Schema for Senior Care Central - Agencies & Services
 -- Run in Supabase SQL editor. Enables RLS and minimal constraints.
 
+-- User profiles (linked to auth.users) with role
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  role text not null default 'provider' check (role in ('provider','family','admin')),
+  display_name text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+
+create policy if not exists profiles_select_self on public.profiles
+for select to authenticated using (id = auth.uid());
+
+create policy if not exists profiles_update_self on public.profiles
+for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
+
+-- Family accounts (one-to-one with profiles where role = 'family')
+create table if not exists public.families (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references public.profiles(id) on delete cascade,
+  full_name text,
+  phone text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.families enable row level security;
+
+create policy if not exists families_rw_self on public.families
+for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+
 create table if not exists public.agencies (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
