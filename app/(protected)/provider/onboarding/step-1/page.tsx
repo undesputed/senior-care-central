@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import Step1Form from "./Step1Form";
 
 export default async function OnboardingStep1Page() {
   const supabase = await createClient();
@@ -34,11 +35,7 @@ export default async function OnboardingStep1Page() {
             <CardDescription>We&apos;ll collect your business details to build your profile.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="mb-4">This is a placeholder. We will add the full form next.</p>
-            <div className="flex gap-3">
-              <Link href="/provider/dashboard" className="underline">Save & Exit</Link>
-              <Link href="#" className="underline">Next</Link>
-            </div>
+            <Step1Form email={user.email} />
           </CardContent>
         </Card>
       </div>
