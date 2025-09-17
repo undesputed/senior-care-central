@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Eye, EyeOff, Mail, Lock, Loader2, LogIn, Google } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, Loader2, LogIn } from "lucide-react";
 
 export default function ProviderLoginPage() {
   const router = useRouter();
@@ -162,7 +162,7 @@ export default function ProviderLoginPage() {
             </Button>
 
             <Button type="button" variant="outline" className="w-full" onClick={onLoginWithGoogle}>
-              <Google className="h-4 w-4" />
+              <LogIn className="h-4 w-4" />
               <span className="ml-2">Login with Google</span>
             </Button>
           </form>
