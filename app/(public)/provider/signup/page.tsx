@@ -14,15 +14,21 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2, UserPlus, LogIn } from "lucide-react";
 
-const schema = z.object({
-  ownerName: z.string().min(2, "Name must be at least 2 characters").max(50, "Name must be at most 50 characters"),
-  email: z.string().email("Enter a valid email"),
-  password: z
-    .string()
-    .min(8, "At least 8 characters")
-    .regex(/[A-Z]/, "Must include an uppercase letter")
-    .regex(/[0-9]/, "Must include a digit"),
-});
+const schema = z
+  .object({
+    ownerName: z.string().min(2, "Name must be at least 2 characters").max(50, "Name must be at most 50 characters"),
+    email: z.string().email("Enter a valid email"),
+    password: z
+      .string()
+      .min(8, "At least 8 characters")
+      .regex(/[A-Z]/, "Must include an uppercase letter")
+      .regex(/[0-9]/, "Must include a digit"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match",
+  });
 
 type FormValues = z.infer<typeof schema>;
 
@@ -96,6 +102,13 @@ export default function ProviderSignupPage() {
               <Input id="password" type="password" placeholder="••••••••" {...register("password")} aria-invalid={!!errors.password} />
               {errors.password && (
                 <p className="text-sm text-red-600" role="alert">{errors.password.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input id="confirmPassword" type="password" placeholder="••••••••" {...register("confirmPassword")} aria-invalid={!!errors.confirmPassword} />
+              {errors.confirmPassword && (
+                <p className="text-sm text-red-600" role="alert">{errors.confirmPassword.message}</p>
               )}
             </div>
             <Button type="submit" className="w-full" style={{ backgroundColor: "#9bc3a2" }} disabled={loading}>

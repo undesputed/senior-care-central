@@ -12,10 +12,12 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
-create policy if not exists profiles_select_self on public.profiles
+drop policy if exists profiles_select_self on public.profiles;
+create policy profiles_select_self on public.profiles
 for select to authenticated using (id = auth.uid());
 
-create policy if not exists profiles_update_self on public.profiles
+drop policy if exists profiles_update_self on public.profiles;
+create policy profiles_update_self on public.profiles
 for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
 
 -- Family accounts (one-to-one with profiles where role = 'family')
@@ -30,7 +32,8 @@ create table if not exists public.families (
 
 alter table public.families enable row level security;
 
-create policy if not exists families_rw_self on public.families
+drop policy if exists families_rw_self on public.families;
+create policy families_rw_self on public.families
 for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 create table if not exists public.agencies (
@@ -57,22 +60,26 @@ create table if not exists public.agencies (
 alter table public.agencies enable row level security;
 
 -- Providers can insert their own agency row
-create policy if not exists agencies_insert_self on public.agencies
+drop policy if exists agencies_insert_self on public.agencies;
+create policy agencies_insert_self on public.agencies
 for insert to authenticated
 with check (owner_id = auth.uid());
 
 -- Providers can view and update their own agency row
-create policy if not exists agencies_select_self on public.agencies
+drop policy if exists agencies_select_self on public.agencies;
+create policy agencies_select_self on public.agencies
 for select to authenticated
 using (owner_id = auth.uid());
 
-create policy if not exists agencies_update_self on public.agencies
+drop policy if exists agencies_update_self on public.agencies;
+create policy agencies_update_self on public.agencies
 for update to authenticated
 using (owner_id = auth.uid())
 with check (owner_id = auth.uid());
 
 -- Public read of published agencies (directory)
-create policy if not exists agencies_select_published on public.agencies
+drop policy if exists agencies_select_published on public.agencies;
+create policy agencies_select_published on public.agencies
 for select to anon
 using (status = 'published');
 
@@ -87,7 +94,8 @@ create table if not exists public.services (
 alter table public.services enable row level security;
 
 -- Public readable services taxonomy
-create policy if not exists services_public_read on public.services
+drop policy if exists services_public_read on public.services;
+create policy services_public_read on public.services
 for select using (true);
 
 -- Selected services for an agency
@@ -99,7 +107,8 @@ create table if not exists public.agency_services (
 
 alter table public.agency_services enable row level security;
 
-create policy if not exists agency_services_rw_self on public.agency_services
+drop policy if exists agency_services_rw_self on public.agency_services;
+create policy agency_services_rw_self on public.agency_services
 for all to authenticated
 using (agency_id in (select id from public.agencies where owner_id = auth.uid()))
 with check (agency_id in (select id from public.agencies where owner_id = auth.uid()));
@@ -114,7 +123,8 @@ create table if not exists public.agency_service_strengths (
 
 alter table public.agency_service_strengths enable row level security;
 
-create policy if not exists agency_strengths_rw_self on public.agency_service_strengths
+drop policy if exists agency_strengths_rw_self on public.agency_service_strengths;
+create policy agency_strengths_rw_self on public.agency_service_strengths
 for all to authenticated
 using (agency_id in (select id from public.agencies where owner_id = auth.uid()))
 with check (agency_id in (select id from public.agencies where owner_id = auth.uid()));
@@ -132,7 +142,8 @@ create table if not exists public.agency_service_rates (
 
 alter table public.agency_service_rates enable row level security;
 
-create policy if not exists agency_rates_rw_self on public.agency_service_rates
+drop policy if exists agency_rates_rw_self on public.agency_service_rates;
+create policy agency_rates_rw_self on public.agency_service_rates
 for all to authenticated
 using (agency_id in (select id from public.agencies where owner_id = auth.uid()))
 with check (agency_id in (select id from public.agencies where owner_id = auth.uid()));
