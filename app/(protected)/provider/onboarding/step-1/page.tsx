@@ -13,6 +13,18 @@ export default async function OnboardingStep1Page() {
     redirect("/provider/login");
   }
 
+  // Ensure draft agency exists for this user
+  const { data: existing } = await supabase
+    .from('agencies')
+    .select('id')
+    .eq('owner_id', user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!existing) {
+    await supabase.from('agencies').insert({ owner_id: user.id, email: user.email, status: 'draft' });
+  }
+
   return (
     <div className="min-h-[100dvh] px-4 py-8" style={{ backgroundColor: "#c2dacc" }}>
       <div className="mx-auto max-w-3xl">
