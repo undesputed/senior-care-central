@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import ServicesForm from "./ServicesForm";
 
 export default async function OnboardingStep2Page() {
   const supabase = await createClient();
@@ -17,11 +18,7 @@ export default async function OnboardingStep2Page() {
             <CardDescription>Select at least one service you provide.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p>Placeholder for services checklist. Coming next.</p>
-            <div className="mt-4 flex gap-3">
-              <Link href="/provider/onboarding/step-1" className="underline">Back</Link>
-              <Link href="/provider/onboarding/step-3" className="underline">Next</Link>
-            </div>
+            <ServicesForm />
           </CardContent>
         </Card>
       </div>
