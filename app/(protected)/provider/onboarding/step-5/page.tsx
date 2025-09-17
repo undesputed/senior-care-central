@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import UploadsForm from "./UploadsForm";
 
 export default async function OnboardingStep5Page() {
   const supabase = await createClient();
@@ -14,14 +15,10 @@ export default async function OnboardingStep5Page() {
         <Card className="rounded-2xl border-0 shadow-lg" style={{ backgroundColor: "#ffffff" }}>
           <CardHeader>
             <CardTitle>Onboarding – Upload Documents & Photos</CardTitle>
-            <CardDescription>We will set up storage and uploads next.</CardDescription>
+            <CardDescription>Upload required documents and optional photos.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="mb-4">Placeholder for uploads. Coming next.</p>
-            <div className="flex gap-3">
-              <Link href="/provider/onboarding/step-4" className="underline">Back</Link>
-              <Link href="/provider/dashboard" className="underline">Finish</Link>
-            </div>
+            <UploadsForm />
           </CardContent>
         </Card>
       </div>

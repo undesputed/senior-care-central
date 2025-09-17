@@ -109,19 +109,37 @@ with check (agency_id in (select id from public.agencies where owner_id = auth.u
 -- select storage.create_bucket('agency-photos', public := true);
 
 -- Storage policies
--- Docs: only owner can read/write
+-- Docs: only owner can read/write based on path prefix 'agency-<agency_id>/'
 -- begin;
 -- create policy if not exists docs_read_own on storage.objects for select to authenticated
---   using (bucket_id = 'agency-docs' and (metadata->>'agency_id') in (select id::text from public.agencies where owner_id = auth.uid()));
+--   using (
+--     bucket_id = 'agency-docs' and exists (
+--       select 1 from public.agencies a
+--       where a.owner_id = auth.uid()
+--         and position('agency-' || a.id || '/' in name) = 1
+--     )
+--   );
 -- create policy if not exists docs_write_own on storage.objects for insert to authenticated
---   with check (bucket_id = 'agency-docs' and (metadata->>'agency_id') in (select id::text from public.agencies where owner_id = auth.uid()));
+--   with check (
+--     bucket_id = 'agency-docs' and exists (
+--       select 1 from public.agencies a
+--       where a.owner_id = auth.uid()
+--         and position('agency-' || a.id || '/' in name) = 1
+--     )
+--   );
 -- commit;
 
--- Photos: public read, owner write
+-- Photos: public read, owner write based on path prefix
 -- begin;
 -- create policy if not exists photos_public_read on storage.objects for select to anon using (bucket_id = 'agency-photos');
 -- create policy if not exists photos_write_own on storage.objects for insert to authenticated
---   with check (bucket_id = 'agency-photos' and (metadata->>'agency_id') in (select id::text from public.agencies where owner_id = auth.uid()));
+--   with check (
+--     bucket_id = 'agency-photos' and exists (
+--       select 1 from public.agencies a
+--       where a.owner_id = auth.uid()
+--         and position('agency-' || a.id || '/' in name) = 1
+--     )
+--   );
 -- commit;
 
 
