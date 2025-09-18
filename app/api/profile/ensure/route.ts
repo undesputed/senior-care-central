@@ -12,13 +12,24 @@ export async function POST() {
 
     console.log('Creating profile for user:', { id: user.id, role, displayName })
 
-    const { data: profile } = await supabase.from('profiles').select('id').eq('id', user.id).maybeSingle()
+    const { data: profile, error: profileCheckError } = await supabase.from('profiles').select('id').eq('id', user.id).maybeSingle()
+    console.log('Profile check result:', { profile, error: profileCheckError })
+    
+    if (profileCheckError) {
+      console.error('Profile check error:', profileCheckError)
+      return NextResponse.json({ error: profileCheckError.message }, { status: 400 })
+    }
+    
     if (!profile) {
-      const { error } = await supabase.from('profiles').insert({ 
+      console.log('Profile does not exist, creating new profile...')
+      const { data: insertData, error } = await supabase.from('profiles').insert({ 
         id: user.id, 
         role, 
         display_name: displayName 
-      })
+      }).select()
+      
+      console.log('Profile insert result:', { data: insertData, error })
+      
       if (error) {
         console.error('Profile creation error:', error)
         return NextResponse.json({ error: error.message }, { status: 400 })

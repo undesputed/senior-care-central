@@ -24,6 +24,7 @@ export default function AuthCallbackPage() {
         const errorDescription = url.searchParams.get('error_description');
         
         console.log('Auth callback params:', { code, type, error, errorCode, errorDescription, href: window.location.href });
+        console.log('Full URL search params:', Object.fromEntries(url.searchParams.entries()));
         
         // Handle error cases first
         if (error) {
@@ -49,14 +50,16 @@ export default function AuthCallbackPage() {
           
           // Method 1: Try verifyOtp with token_hash
           try {
+            console.log('Trying verifyOtp with token_hash:', code);
             const result = await supabase.auth.verifyOtp({
               token_hash: code,
               type: 'signup'
             });
             data = result.data;
             verifyError = result.error;
+            console.log('verifyOtp with token_hash result:', { data: !!data, error: verifyError });
           } catch (e) {
-            console.log('verifyOtp with token_hash failed, trying alternative method');
+            console.log('verifyOtp with token_hash failed, trying alternative method:', e);
           }
           
           // Method 2: If first method fails, try verifyOtp with token
@@ -95,12 +98,29 @@ export default function AuthCallbackPage() {
           setStatus('Creating profile...');
           
           // Ensure profile row exists after successful confirmation
+          console.log('Attempting to create profile...');
           const profileResponse = await fetch('/api/profile/ensure', { method: 'POST' });
+          console.log('Profile creation response:', { ok: profileResponse.ok, status: profileResponse.status });
+          
           if (!profileResponse.ok) {
             const errorData = await profileResponse.json();
             console.error('Profile creation failed:', errorData);
             setStatus('Profile creation failed. Please contact support.');
             toast.error('Profile creation failed');
+            setTimeout(() => router.replace('/provider/login'), 3000);
+            return;
+          }
+          
+          console.log('Profile created successfully, checking session...');
+          
+          // Verify the session is properly established
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          console.log('Session check:', { hasSession: !!session, error: sessionError });
+          
+          if (!session) {
+            console.error('No session found after email confirmation');
+            setStatus('Session not established. Please try logging in.');
+            toast.error('Session not established');
             setTimeout(() => router.replace('/provider/login'), 3000);
             return;
           }
