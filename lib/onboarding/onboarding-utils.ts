@@ -6,6 +6,19 @@ export async function checkOnboardingCompletion(userId: string): Promise<{
 }> {
   const supabase = await createClient()
   
+  // First verify user exists in profiles table (handles deleted users)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (!profile) {
+    // User was deleted, clear session
+    await supabase.auth.signOut()
+    throw new Error('User not found')
+  }
+  
   // Get agency data
   const { data: agency } = await supabase
     .from('agencies')

@@ -50,6 +50,20 @@ export default function ProviderLoginPage() {
         toast.error("Login failed", { description: error.message });
         return;
       }
+      // Verify user exists in profiles table (handles deleted users)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (!profile) {
+        // User was deleted from database, clear session and show error
+        await supabase.auth.signOut();
+        toast.error("Account not found. Please contact support.");
+        return;
+      }
+      
       // Ensure profile row exists
       await fetch('/api/profile/ensure', { method: 'POST' })
       

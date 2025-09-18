@@ -15,6 +15,19 @@ export default async function ProviderDashboardPage() {
     redirect("/provider/login");
   }
 
+  // Verify user still exists in profiles table (handles deleted users)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (!profile) {
+    // User was deleted from database, clear session and redirect to login
+    await supabase.auth.signOut();
+    redirect("/provider/login");
+  }
+
   // Check if onboarding is complete, redirect if not
   const { checkOnboardingCompletion } = await import('@/lib/onboarding/onboarding-utils')
   const { isComplete, nextStep } = await checkOnboardingCompletion(user.id)
