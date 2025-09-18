@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2, UserPlus, LogIn } from "lucide-react";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 
 const schema = z
   .object({
@@ -111,10 +113,16 @@ export default function ProviderSignupPage() {
                 <p className="text-sm text-red-600" role="alert">{errors.confirmPassword.message}</p>
               )}
             </div>
-            <Button type="submit" className="w-full" style={{ backgroundColor: "#9bc3a2" }} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-              <span className="ml-2">Create account</span>
-            </Button>
+            <LoadingButton
+              type="submit"
+              loading={loading}
+              loadingText="Creating account..."
+              className="w-full"
+              style={{ backgroundColor: "#9bc3a2" }}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Create account
+            </LoadingButton>
             <Button type="button" variant="outline" className="w-full" onClick={onSignupWithGoogle}>
               <LogIn className="h-4 w-4" />
               <span className="ml-2">Sign up with Google</span>

@@ -1,20 +1,29 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { toast } from "sonner";
 
 export function PublishedBanner() {
+  const [isUnpublishing, setIsUnpublishing] = useState(false);
+
   const onUnpublish = async () => {
     const ok = confirm('Unpublishing will remove your profile from search results. Proceed?');
     if (!ok) return;
-    const res = await fetch('/api/provider/unpublish', { method: 'POST' });
-    const json = await res.json();
-    if (!res.ok) {
-      toast.error('Cannot unpublish', { description: json.error });
-      return;
+    
+    setIsUnpublishing(true);
+    try {
+      const res = await fetch('/api/provider/unpublish', { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error('Cannot unpublish', { description: json.error });
+        return;
+      }
+      toast.success('Profile moved to draft');
+      window.location.reload();
+    } finally {
+      setIsUnpublishing(false);
     }
-    toast.success('Profile moved to draft');
-    window.location.reload();
   };
 
   return (
@@ -34,13 +43,15 @@ export function PublishedBanner() {
           <p className="text-sm text-green-700 mb-4">
             Your agency profile is now live and visible to clients. You can start receiving referrals and inquiries.
           </p>
-          <Button 
-            variant="outline" 
+          <LoadingButton
+            loading={isUnpublishing}
+            loadingText="Unpublishing..."
+            variant="outline"
             onClick={onUnpublish}
             className="border-green-300 text-green-700 hover:bg-green-100 font-medium px-6 py-2 rounded-lg transition-colors"
           >
             Revert to Draft
-          </Button>
+          </LoadingButton>
         </div>
       </div>
     </div>

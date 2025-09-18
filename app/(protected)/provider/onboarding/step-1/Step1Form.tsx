@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Upload, X, Image } from "lucide-react";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 const currentYear = new Date().getFullYear();
 
@@ -338,25 +339,27 @@ export default function Step1Form({ email }: { email: string | null }) {
                   className="hidden"
                   id="logo-upload"
                 />
-                <Button
+                <LoadingButton
                   type="button"
                   variant="outline"
                   size="sm"
+                  loading={uploading}
+                  loadingText="Uploading..."
                   onClick={() => document.getElementById('logo-upload')?.click()}
-                  disabled={uploading}
                 >
                   <Upload className="h-4 w-4 mr-1" />
                   Replace
-                </Button>
-                <Button
+                </LoadingButton>
+                <LoadingButton
                   type="button"
                   variant="outline"
                   size="sm"
+                  loading={uploading}
+                  loadingText="Removing..."
                   onClick={removeLogo}
-                  disabled={uploading}
                 >
                   <X className="h-4 w-4" />
-                </Button>
+                </LoadingButton>
               </div>
             </div>
           ) : (
@@ -372,16 +375,17 @@ export default function Step1Form({ email }: { email: string | null }) {
                 className="hidden"
                 id="logo-upload"
               />
-              <Button
+              <LoadingButton
                 type="button"
                 variant="outline"
+                loading={uploading}
+                loadingText="Uploading..."
                 onClick={() => document.getElementById('logo-upload')?.click()}
-                disabled={uploading}
                 className="w-full"
               >
                 <Upload className="h-4 w-4 mr-2" />
-                {uploading ? "Uploading..." : "Upload Business Logo"}
-              </Button>
+                Upload Business Logo
+              </LoadingButton>
               <p className="text-xs text-gray-500 mt-2">
                 JPG, PNG, or WebP (max 5MB)
               </p>
@@ -427,7 +431,15 @@ export default function Step1Form({ email }: { email: string | null }) {
 
       <div className="flex items-center justify-between">
         <Link href="/provider/dashboard" className="underline">Save & Exit</Link>
-        <Button onClick={onNext} disabled={!isValid} style={{ backgroundColor: "#9bc3a2" }}>Next</Button>
+        <LoadingButton
+          loading={saving}
+          loadingText="Saving..."
+          onClick={onNext}
+          disabled={!isValid}
+          style={{ backgroundColor: "#9bc3a2" }}
+        >
+          Next
+        </LoadingButton>
       </div>
     </div>
   );

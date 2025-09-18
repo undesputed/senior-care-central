@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock, Loader2, LogIn } from "lucide-react";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 export default function ProviderLoginPage() {
   const router = useRouter();
@@ -163,15 +164,16 @@ export default function ProviderLoginPage() {
               </button>
             </div>
 
-            <Button
+            <LoadingButton
               type="submit"
+              loading={loading}
+              loadingText="Signing in..."
               className="w-full"
               style={{ backgroundColor: "#9bc3a2" }}
-              disabled={loading}
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
-              <span className="ml-2">Login</span>
-            </Button>
+              <LogIn className="h-4 w-4 mr-2" />
+              Login
+            </LoadingButton>
 
             <Button type="button" variant="outline" className="w-full" onClick={onLoginWithGoogle}>
               <LogIn className="h-4 w-4" />

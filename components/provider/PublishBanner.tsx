@@ -1,18 +1,27 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { toast } from "sonner";
 
 export function PublishBanner() {
+  const [isPublishing, setIsPublishing] = useState(false);
+
   const onPublish = async () => {
-    const res = await fetch('/api/provider/publish', { method: 'POST' });
-    const json = await res.json();
-    if (!res.ok) {
-      toast.error('Cannot publish', { description: json.error });
-      return;
+    setIsPublishing(true);
+    try {
+      const res = await fetch('/api/provider/publish', { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error('Cannot publish', { description: json.error });
+        return;
+      }
+      toast.success('Profile published');
+      window.location.reload();
+    } finally {
+      setIsPublishing(false);
     }
-    toast.success('Profile published');
-    window.location.reload();
   };
 
   return (
@@ -32,12 +41,14 @@ export function PublishBanner() {
           <p className="text-sm text-blue-700 mb-4">
             Your agency profile is in draft and not yet visible to clients. Complete your setup and publish to start receiving referrals.
           </p>
-          <Button 
-            onClick={onPublish} 
+          <LoadingButton
+            loading={isPublishing}
+            loadingText="Publishing..."
+            onClick={onPublish}
             className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg transition-colors"
           >
             Publish My Profile
-          </Button>
+          </LoadingButton>
         </div>
       </div>
     </div>
