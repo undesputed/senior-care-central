@@ -16,9 +16,30 @@ export function PublishBanner() {
   };
 
   return (
-    <div className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 p-4">
-      <div className="mb-2 font-medium">Your agency profile is in draft and not yet visible to clients.</div>
-      <Button onClick={onPublish} style={{ backgroundColor: '#9bc3a2' }}>Publish My Profile</Button>
+    <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-6">
+      <div className="flex items-start space-x-3">
+        <div className="flex-shrink-0">
+          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold text-blue-900 mb-1">
+            Ready to Go Live?
+          </h3>
+          <p className="text-sm text-blue-700 mb-4">
+            Your agency profile is in draft and not yet visible to clients. Complete your setup and publish to start receiving referrals.
+          </p>
+          <Button 
+            onClick={onPublish} 
+            className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg transition-colors"
+          >
+            Publish My Profile
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
