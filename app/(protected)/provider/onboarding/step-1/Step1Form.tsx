@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import Link from "next/link";
+import { Upload, X, Image } from "lucide-react";
 
 const currentYear = new Date().getFullYear();
 
@@ -48,6 +49,8 @@ export default function Step1Form({ email }: { email: string | null }) {
   const router = useRouter();
   const [initializing, setInitializing] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string>("");
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
 
   const {
@@ -80,7 +83,7 @@ export default function Step1Form({ email }: { email: string | null }) {
       const { data, error } = await supabase
         .from("agencies")
         .select(
-          "business_name,business_registration_number,year_established,website,phone,admin_contact_name,cities,postal_codes,coverage_radius_km"
+          "business_name,business_registration_number,year_established,website,logo_url,phone,admin_contact_name,cities,postal_codes,coverage_radius_km"
         )
         .eq("owner_id", user.id)
         .limit(1)
@@ -92,6 +95,7 @@ export default function Step1Form({ email }: { email: string | null }) {
         setValue("business_registration_number", data.business_registration_number ?? "");
         setValue("year_established", data.year_established ? String(data.year_established) : "");
         setValue("website", data.website ?? "");
+        setLogoUrl(data.logo_url ?? "");
         setValue("phone", data.phone ?? "");
         setValue("admin_contact_name", data.admin_contact_name ?? "");
         setValue("cities", Array.isArray(data.cities) ? data.cities.join(", ") : (data.cities ?? ""));
@@ -126,6 +130,7 @@ export default function Step1Form({ email }: { email: string | null }) {
           business_registration_number: values.business_registration_number || null,
           year_established: year,
           website: values.website || null,
+          logo_url: logoUrl || null,
           phone: values.phone,
           admin_contact_name: values.admin_contact_name,
           cities: citiesArray,
@@ -172,6 +177,7 @@ export default function Step1Form({ email }: { email: string | null }) {
         business_registration_number: watched.business_registration_number || null,
         year_established: year,
         website: watched.website || null,
+        logo_url: logoUrl || null,
         phone: watched.phone,
         admin_contact_name: watched.admin_contact_name,
         cities: citiesArray,
@@ -186,6 +192,96 @@ export default function Step1Form({ email }: { email: string | null }) {
       return;
     }
     router.push("/provider/onboarding/step-2");
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    // Validate file
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast.error("Logo file must be less than 5MB");
+      return;
+    }
+    
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error("Logo must be a JPG, PNG, or WebP image");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get agency ID
+      const { data: agency } = await supabase
+        .from('agencies')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (!agency) {
+        toast.error("Agency not found");
+        return;
+      }
+
+      // Upload to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const filePath = `agency-${agency.id}/logo/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('agency-photos')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('agency-photos')
+        .getPublicUrl(filePath);
+
+      // Update agency record
+      const { error: updateError } = await supabase
+        .from('agencies')
+        .update({ logo_url: publicUrl })
+        .eq('id', agency.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      setLogoUrl(publicUrl);
+      toast.success("Logo uploaded successfully");
+    } catch (error: any) {
+      toast.error("Upload failed", { description: error.message });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeLogo = async () => {
+    setUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('agencies')
+        .update({ logo_url: null })
+        .eq('owner_id', user.id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setLogoUrl("");
+      toast.success("Logo removed");
+    } catch (error: any) {
+      toast.error("Failed to remove logo", { description: error.message });
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -215,6 +311,82 @@ export default function Step1Form({ email }: { email: string | null }) {
           <Label htmlFor="website">Website</Label>
           <Input id="website" placeholder="https://example.com" {...register("website")} aria-invalid={!!errors.website} />
           {errors.website && <p className="text-sm text-red-600" role="alert">{errors.website.message}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label>Business Logo</Label>
+          {logoUrl ? (
+            <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
+              <img 
+                src={logoUrl} 
+                alt="Business logo" 
+                className="w-16 h-16 object-cover rounded border"
+              />
+              <div className="flex-1">
+                <p className="text-sm text-gray-600">Logo uploaded</p>
+                <p className="text-xs text-gray-500">Click to replace or remove</p>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleLogoUpload(file);
+                  }}
+                  disabled={uploading}
+                  className="hidden"
+                  id="logo-upload"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('logo-upload')?.click()}
+                  disabled={uploading}
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  Replace
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={removeLogo}
+                  disabled={uploading}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+              <Input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleLogoUpload(file);
+                }}
+                disabled={uploading}
+                className="hidden"
+                id="logo-upload"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById('logo-upload')?.click()}
+                disabled={uploading}
+                className="w-full"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {uploading ? "Uploading..." : "Upload Business Logo"}
+              </Button>
+              <p className="text-xs text-gray-500 mt-2">
+                JPG, PNG, or WebP (max 5MB)
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
