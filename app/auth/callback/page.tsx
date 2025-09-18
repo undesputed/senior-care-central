@@ -16,11 +16,21 @@ export default function AuthCallbackPage() {
     (async () => {
       // Exchange the auth code from the email link for a session
       try {
-        await supabase.auth.exchangeCodeForSession(window.location.href);
-        await fetch('/api/profile/ensure', { method: 'POST' });
+        const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+        if (error) throw error;
+        
+        // Ensure profile row exists after successful confirmation
+        const profileResponse = await fetch('/api/profile/ensure', { method: 'POST' });
+        if (!profileResponse.ok) {
+          const errorData = await profileResponse.json();
+          console.error('Profile creation failed:', errorData);
+          throw new Error('Failed to create profile');
+        }
+        
         toast.success('Email confirmed');
         router.replace('/provider/onboarding/step-1');
       } catch (e: any) {
+        console.error('Auth callback error:', e);
         setStatus('Could not complete confirmation. Please sign in.');
         toast.error('Confirmation failed');
         router.replace('/provider/login');
