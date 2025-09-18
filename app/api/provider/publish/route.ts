@@ -21,13 +21,12 @@ export async function POST() {
   const hasArea = (agency.cities && agency.cities.length > 0) || (agency.postal_codes && agency.postal_codes.length > 0)
   if (!hasArea) return NextResponse.json({ error: 'Serviceable area required' }, { status: 400 })
 
+  // Get agency ID first, then query related tables
+  const agencyId = agency.id;
+  
   const [{ data: services }, { data: rates }] = await Promise.all([
-    supabase.from('agency_services').select('service_id').in('agency_id', (
-      supabase.from('agencies').select('id').eq('owner_id', user.id)
-    )),
-    supabase.from('agency_service_rates').select('service_id,min_amount,max_amount').in('agency_id', (
-      supabase.from('agencies').select('id').eq('owner_id', user.id)
-    )),
+    supabase.from('agency_services').select('service_id').eq('agency_id', agencyId),
+    supabase.from('agency_service_rates').select('service_id,min_amount,max_amount').eq('agency_id', agencyId),
   ])
 
   if (!services || services.length === 0) return NextResponse.json({ error: 'At least one service required' }, { status: 400 })
