@@ -52,8 +52,18 @@ export default function ProviderLoginPage() {
       }
       // Ensure profile row exists
       await fetch('/api/profile/ensure', { method: 'POST' })
-      toast.success("Welcome back! Redirecting...");
-      router.replace("/provider/dashboard");
+      
+      // Check onboarding completion and redirect accordingly
+      const onboardingCheck = await fetch('/api/onboarding/check', { method: 'POST' })
+      const { isComplete, nextStep } = await onboardingCheck.json()
+      
+      if (isComplete) {
+        toast.success("Welcome back! Redirecting...");
+        router.replace("/provider/dashboard");
+      } else {
+        toast.success("Welcome! Let's complete your setup.");
+        router.replace(nextStep || "/provider/onboarding/step-1");
+      }
     } finally {
       setLoading(false);
     }

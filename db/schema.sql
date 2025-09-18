@@ -52,6 +52,7 @@ create table if not exists public.agencies (
   coverage_radius_km int,
   description text,
   permit_verified boolean not null default false,
+  onboarding_completed boolean not null default false,
   status text not null default 'draft' check (status in ('draft','published','suspended')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

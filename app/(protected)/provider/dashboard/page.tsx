@@ -15,6 +15,14 @@ export default async function ProviderDashboardPage() {
     redirect("/provider/login");
   }
 
+  // Check if onboarding is complete, redirect if not
+  const { checkOnboardingCompletion } = await import('@/lib/onboarding/onboarding-utils')
+  const { isComplete, nextStep } = await checkOnboardingCompletion(user.id)
+  
+  if (!isComplete) {
+    redirect(nextStep || "/provider/onboarding/step-1")
+  }
+
   const { data: agency } = await supabase
     .from('agencies')
     .select('status')
