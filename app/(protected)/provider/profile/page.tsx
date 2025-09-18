@@ -3,10 +3,10 @@ import { redirect } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { PublishBanner } from "@/components/provider/PublishBanner";
 import { PublishedBanner } from "@/components/provider/PublishedBanner";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import ProfileActions from "@/components/profile/ProfileActions";
 import { MapPin, Phone, Mail, Globe, Calendar, Building } from "lucide-react";
 
 export default async function ProviderProfilePage() {
@@ -281,20 +281,7 @@ export default async function ProviderProfilePage() {
         </div>
 
         {/* Actions */}
-        <div className="mt-6 flex flex-col sm:flex-row gap-4">
-          <Button 
-            onClick={() => window.location.href = '/provider/onboarding/step-1'}
-            variant="outline"
-          >
-            Edit Profile
-          </Button>
-          <Button 
-            onClick={() => window.location.href = '/provider/dashboard'}
-            variant="outline"
-          >
-            Back to Dashboard
-          </Button>
-        </div>
+        <ProfileActions />
       </div>
     </DashboardLayout>
   );

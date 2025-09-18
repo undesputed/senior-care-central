@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Search, Grid, List, Leaf } from "lucide-react";
+import { Bell, Search, Leaf } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import ViewToggle from "./ViewToggle";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -23,7 +23,6 @@ export default function DashboardLayout({
   showViewToggle = false 
 }: DashboardLayoutProps) {
   const pathname = usePathname();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const navigationItems = [
     { name: 'Home', href: '/provider/dashboard' },
@@ -133,26 +132,7 @@ export default function DashboardLayout({
             )}
 
             {/* View Toggle */}
-            {showViewToggle && (
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className={viewMode === 'grid' ? 'bg-green-600 hover:bg-green-700' : ''}
-                >
-                  <Grid className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className={viewMode === 'list' ? 'bg-green-600 hover:bg-green-700' : ''}
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
+            {showViewToggle && <ViewToggle />}
           </div>
         )}
 
