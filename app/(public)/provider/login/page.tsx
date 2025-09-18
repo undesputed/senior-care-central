@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock, Loader2, LogIn } from "lucide-react";
+import { validateSessionAndClearIfInvalid } from "@/lib/auth/session-utils";
 
 export default function ProviderLoginPage() {
   const router = useRouter();
@@ -19,19 +20,18 @@ export default function ProviderLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // If already logged in, redirect to dashboard
+  // Validate session on page load and clear if invalid
   useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (isMounted && session?.user) {
+    const checkSession = async () => {
+      const isValid = await validateSessionAndClearIfInvalid();
+      if (isValid) {
+        // Valid session exists, redirect to dashboard
         router.replace("/provider/dashboard");
       }
-    })();
-    return () => {
-      isMounted = false;
     };
-  }, [router, supabase]);
+    checkSession();
+  }, [router]);
+
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
