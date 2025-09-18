@@ -151,6 +151,36 @@ for all to authenticated
 using (agency_id in (select id from public.agencies where owner_id = auth.uid()))
 with check (agency_id in (select id from public.agencies where owner_id = auth.uid()));
 
+-- Agency uploads table
+create table if not exists public.agency_uploads (
+  id uuid not null default gen_random_uuid() primary key,
+  agency_id uuid not null references public.agencies(id) on delete cascade,
+  file_type text not null check (file_type in ('registration', 'background_check', 'training', 'photo')),
+  file_name text not null,
+  file_path text not null,
+  file_size bigint not null,
+  mime_type text not null,
+  photo_category text check (photo_category in ('care_team', 'facilities', 'clients')),
+  created_at timestamptz not null default now()
+);
+
+alter table public.agency_uploads enable row level security;
+
+drop policy if exists agency_uploads_select_own on public.agency_uploads;
+create policy agency_uploads_select_own on public.agency_uploads
+for select to authenticated
+using (agency_id in (select id from public.agencies where owner_id = auth.uid()));
+
+drop policy if exists agency_uploads_insert_own on public.agency_uploads;
+create policy agency_uploads_insert_own on public.agency_uploads
+for insert to authenticated
+with check (agency_id in (select id from public.agencies where owner_id = auth.uid()));
+
+drop policy if exists agency_uploads_delete_own on public.agency_uploads;
+create policy agency_uploads_delete_own on public.agency_uploads
+for delete to authenticated
+using (agency_id in (select id from public.agencies where owner_id = auth.uid()));
+
 -- Storage buckets (run once)
 -- select storage.create_bucket('agency-docs', public := false);
 -- select storage.create_bucket('agency-photos', public := true);
@@ -158,7 +188,8 @@ with check (agency_id in (select id from public.agencies where owner_id = auth.u
 -- Storage policies
 -- Docs: only owner can read/write based on path prefix 'agency-<agency_id>/'
 -- begin;
--- create policy if not exists docs_read_own on storage.objects for select to authenticated
+-- drop policy if exists docs_read_own on storage.objects;
+-- create policy docs_read_own on storage.objects for select to authenticated
 --   using (
 --     bucket_id = 'agency-docs' and exists (
 --       select 1 from public.agencies a
@@ -166,7 +197,8 @@ with check (agency_id in (select id from public.agencies where owner_id = auth.u
 --         and position('agency-' || a.id || '/' in name) = 1
 --     )
 --   );
--- create policy if not exists docs_write_own on storage.objects for insert to authenticated
+-- drop policy if exists docs_write_own on storage.objects;
+-- create policy docs_write_own on storage.objects for insert to authenticated
 --   with check (
 --     bucket_id = 'agency-docs' and exists (
 --       select 1 from public.agencies a
@@ -178,8 +210,10 @@ with check (agency_id in (select id from public.agencies where owner_id = auth.u
 
 -- Photos: public read, owner write based on path prefix
 -- begin;
--- create policy if not exists photos_public_read on storage.objects for select to anon using (bucket_id = 'agency-photos');
--- create policy if not exists photos_write_own on storage.objects for insert to authenticated
+-- drop policy if exists photos_public_read on storage.objects;
+-- create policy photos_public_read on storage.objects for select to anon using (bucket_id = 'agency-photos');
+-- drop policy if exists photos_write_own on storage.objects;
+-- create policy photos_write_own on storage.objects for insert to authenticated
 --   with check (
 --     bucket_id = 'agency-photos' and exists (
 --       select 1 from public.agencies a
