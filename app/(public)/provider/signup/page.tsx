@@ -61,7 +61,8 @@ export default function ProviderSignupPage() {
         toast.error("Sign up failed", { description: error.message });
         return;
       }
-      // Profile will be created after email confirmation in auth callback
+      // Ensure profile row on successful sign-up (session may be null until confirm)
+      try { await fetch('/api/profile/ensure', { method: 'POST' }) } catch {}
       toast.success("Check your email to confirm your account.");
       router.replace("/provider/login");
     } finally {

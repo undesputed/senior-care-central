@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
+import { StarRating } from "@/components/ui/star-rating";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -82,28 +82,49 @@ export default function StrengthsForm() {
   if (services.length === 0) return <p>Select services in Step 2 first.</p>;
 
   return (
-    <div className="space-y-4">
-      <div className="text-sm">Points left: {Math.max(0, MAX_TOTAL - total)}</div>
-      <div className="grid gap-6">
+    <div className="space-y-6">
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="text-sm font-medium text-blue-900">
+          Star Points Left: {Math.max(0, MAX_TOTAL - total)} / {MAX_TOTAL}
+        </div>
+        <div className="text-xs text-blue-700 mt-1">
+          Allocate up to 5 stars per service. Total cannot exceed {MAX_TOTAL} stars.
+        </div>
+      </div>
+      
+      <div className="space-y-6">
         {services.map((s) => (
-          <div key={s.id}>
-            <div className="mb-2 flex items-center justify-between">
-              <span>{s.name} <span className="text-red-500">*</span></span>
-              <span className="text-sm text-muted-foreground">{points[s.id] ?? 0}/5</span>
+          <div key={s.id} className="border rounded-lg p-4 bg-gray-50">
+            <div className="mb-3">
+              <span className="font-medium text-gray-900">{s.name}</span>
+              <span className="text-red-500 ml-1">*</span>
             </div>
-            <Slider
-              value={[points[s.id] ?? 0]}
+            <StarRating
+              value={points[s.id] ?? 0}
+              onChange={(value) => setServicePoints(s.id, value)}
               max={5}
-              step={1}
-              onValueChange={(v) => setServicePoints(s.id, v[0] ?? 0)}
+              size="md"
             />
           </div>
         ))}
       </div>
-      <p className="text-sm text-muted-foreground">* Allocate points across your selected services (max 20 total)</p>
-      <div className="flex items-center justify-between">
-        <Link href="/provider/onboarding/step-2" className="underline">Back</Link>
-        <Button onClick={onSaveNext} disabled={saving || total > MAX_TOTAL} style={{ backgroundColor: "#9bc3a2" }}>Next</Button>
+      
+      <p className="text-sm text-muted-foreground">
+        * Rate your expertise level for each service using star points (0-5 stars per service)
+      </p>
+      
+      <div className="flex items-center justify-between pt-4">
+        <Link href="/provider/onboarding/step-2" className="underline text-gray-600 hover:text-gray-800">
+          ← Back
+        </Link>
+        <Button 
+          onClick={onSaveNext} 
+          disabled={saving || total > MAX_TOTAL} 
+          style={{ backgroundColor: "#9bc3a2" }}
+          className="px-6"
+        >
+          {saving ? "Saving..." : "Next →"}
+        </Button>
       </div>
     </div>
   );

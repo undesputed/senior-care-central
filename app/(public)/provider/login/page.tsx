@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock, Loader2, LogIn } from "lucide-react";
-import { validateSessionAndClearIfInvalid } from "@/lib/auth/session-utils";
 
 export default function ProviderLoginPage() {
   const router = useRouter();
@@ -20,18 +19,19 @@ export default function ProviderLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Validate session on page load and clear if invalid
+  // If already logged in, redirect to dashboard
   useEffect(() => {
-    const checkSession = async () => {
-      const isValid = await validateSessionAndClearIfInvalid();
-      if (isValid) {
-        // Valid session exists, redirect to dashboard
+    let isMounted = true;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (isMounted && session?.user) {
         router.replace("/provider/dashboard");
       }
+    })();
+    return () => {
+      isMounted = false;
     };
-    checkSession();
-  }, [router]);
-
+  }, [router, supabase]);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,20 +50,6 @@ export default function ProviderLoginPage() {
         toast.error("Login failed", { description: error.message });
         return;
       }
-      // Verify user exists in profiles table (handles deleted users)
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', data.user.id)
-        .maybeSingle();
-
-      if (!profile) {
-        // User was deleted from database, clear session and show error
-        await supabase.auth.signOut();
-        toast.error("Account not found. Please contact support.");
-        return;
-      }
-      
       // Ensure profile row exists
       await fetch('/api/profile/ensure', { method: 'POST' })
       

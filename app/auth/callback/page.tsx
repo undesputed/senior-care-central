@@ -14,160 +14,16 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     (async () => {
+      // Exchange the auth code from the email link for a session
       try {
-        // Check if this is an email confirmation callback
-        const url = new URL(window.location.href);
-        const code = url.searchParams.get('code');
-        const type = url.searchParams.get('type');
-        const error = url.searchParams.get('error');
-        const errorCode = url.searchParams.get('error_code');
-        const errorDescription = url.searchParams.get('error_description');
-        
-        console.log('Auth callback params:', { code, type, error, errorCode, errorDescription, href: window.location.href });
-        console.log('Full URL search params:', Object.fromEntries(url.searchParams.entries()));
-        
-        // Handle error cases first
-        if (error) {
-          console.error('Auth callback error:', { error, errorCode, errorDescription });
-          if (errorCode === 'otp_expired') {
-            setStatus('Email link has expired. Please request a new confirmation email.');
-            toast.error('Email link expired. Please sign up again.');
-          } else {
-            setStatus(`Authentication failed: ${errorDescription || error}`);
-            toast.error('Authentication failed');
-          }
-          setTimeout(() => router.replace('/provider/login'), 3000);
-          return;
-        }
-        
-        // Handle successful email confirmation
-        if (type === 'signup' && code) {
-          setStatus('Verifying email...');
-          
-          // For email confirmation, try multiple methods
-          let verifyError = null;
-          let data = null;
-          
-          // Method 1: Try verifyOtp with token_hash
-          try {
-            console.log('Trying verifyOtp with token_hash:', code);
-            const result = await supabase.auth.verifyOtp({
-              token_hash: code,
-              type: 'signup'
-            });
-            data = result.data;
-            verifyError = result.error;
-            console.log('verifyOtp with token_hash result:', { data: !!data, error: verifyError });
-          } catch (e) {
-            console.log('verifyOtp with token_hash failed, trying alternative method:', e);
-          }
-          
-          // Method 2: If first method fails, try verifyOtp with token
-          if (verifyError) {
-            try {
-              const result = await supabase.auth.verifyOtp({
-                token: code,
-                type: 'signup'
-              });
-              data = result.data;
-              verifyError = result.error;
-            } catch (e) {
-              console.log('verifyOtp with token failed, trying exchangeCodeForSession');
-            }
-          }
-          
-          // Method 3: If both verifyOtp methods fail, try exchangeCodeForSession as fallback
-          if (verifyError) {
-            try {
-              const result = await supabase.auth.exchangeCodeForSession(window.location.href);
-              data = result.data;
-              verifyError = result.error;
-            } catch (e) {
-              console.log('exchangeCodeForSession also failed');
-            }
-          }
-          
-          if (verifyError) {
-            console.error('All email verification methods failed:', verifyError);
-            setStatus('Email verification failed. Please try again.');
-            toast.error('Email verification failed');
-            setTimeout(() => router.replace('/provider/login'), 3000);
-            return;
-          }
-          
-          setStatus('Creating profile...');
-          
-          // Ensure profile row exists after successful confirmation
-          console.log('Attempting to create profile...');
-          const profileResponse = await fetch('/api/profile/ensure', { method: 'POST' });
-          console.log('Profile creation response:', { ok: profileResponse.ok, status: profileResponse.status });
-          
-          if (!profileResponse.ok) {
-            const errorData = await profileResponse.json();
-            console.error('Profile creation failed:', errorData);
-            setStatus('Profile creation failed. Please contact support.');
-            toast.error('Profile creation failed');
-            setTimeout(() => router.replace('/provider/login'), 3000);
-            return;
-          }
-          
-          console.log('Profile created successfully, checking session...');
-          
-          // Verify the session is properly established
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          console.log('Session check:', { hasSession: !!session, error: sessionError });
-          
-          if (!session) {
-            console.error('No session found after email confirmation');
-            setStatus('Session not established. Please try logging in.');
-            toast.error('Session not established');
-            setTimeout(() => router.replace('/provider/login'), 3000);
-            return;
-          }
-          
-          setStatus('Email confirmed successfully!');
-          toast.success('Email confirmed');
-          setTimeout(() => router.replace('/provider/onboarding/step-1'), 1000);
-        } else if (code) {
-          // Handle other auth flows (like OAuth) with exchangeCodeForSession
-          setStatus('Completing authentication...');
-          
-          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
-          if (exchangeError) {
-            console.error('Code exchange error:', exchangeError);
-            setStatus('Authentication failed. Please try again.');
-            toast.error('Authentication failed');
-            setTimeout(() => router.replace('/provider/login'), 3000);
-            return;
-          }
-          
-          setStatus('Creating profile...');
-          
-          // Ensure profile row exists
-          const profileResponse = await fetch('/api/profile/ensure', { method: 'POST' });
-          if (!profileResponse.ok) {
-            const errorData = await profileResponse.json();
-            console.error('Profile creation failed:', errorData);
-            setStatus('Profile creation failed. Please contact support.');
-            toast.error('Profile creation failed');
-            setTimeout(() => router.replace('/provider/login'), 3000);
-            return;
-          }
-          
-          setStatus('Authentication successful!');
-          toast.success('Authentication successful');
-          setTimeout(() => router.replace('/provider/onboarding/step-1'), 1000);
-        } else {
-          // No code or type parameter
-          setStatus('Invalid confirmation link. Please try again.');
-          toast.error('Invalid confirmation link');
-          setTimeout(() => router.replace('/provider/login'), 3000);
-        }
+        await supabase.auth.exchangeCodeForSession(window.location.href);
+        await fetch('/api/profile/ensure', { method: 'POST' });
+        toast.success('Email confirmed');
+        router.replace('/provider/onboarding/step-1');
       } catch (e: any) {
-        console.error('Auth callback error:', e);
-        setStatus('An unexpected error occurred. Please try again.');
+        setStatus('Could not complete confirmation. Please sign in.');
         toast.error('Confirmation failed');
-        setTimeout(() => router.replace('/provider/login'), 3000);
+        router.replace('/provider/login');
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
