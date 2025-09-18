@@ -127,11 +127,11 @@ export default function RatesForm() {
             <div key={s.id} className="grid gap-2">
               <div className="font-medium">{s.name} <span className="text-red-500">*</span></div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor={`min-${s.id}`}>Min</Label>
                   <Input id={`min-${s.id}`} inputMode="decimal" placeholder="100" value={v.min} onChange={(e) => setField(s.id, 'min', e.target.value)} />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor={`max-${s.id}`}>Max</Label>
                   <Input id={`max-${s.id}`} inputMode="decimal" placeholder="250" value={v.max} onChange={(e) => setField(s.id, 'max', e.target.value)} />
                 </div>
