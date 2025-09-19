@@ -35,8 +35,18 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // TODO: Add role-based route protection logic here
-  // For now, we'll just refresh the session
+  // Basic role-based route protection
+  const pathname = request.nextUrl.pathname
+  
+  // If user is not authenticated and trying to access protected routes
+  if (!user) {
+    if (pathname.startsWith('/family/') && pathname !== '/family/login' && pathname !== '/family/signup' && pathname !== '/family/reset-password') {
+      return NextResponse.redirect(new URL('/family/login', request.url))
+    }
+    if (pathname.startsWith('/provider/') && pathname !== '/provider/login' && pathname !== '/provider/signup' && pathname !== '/provider/reset-password') {
+      return NextResponse.redirect(new URL('/provider/login', request.url))
+    }
+  }
 
   return supabaseResponse
 }

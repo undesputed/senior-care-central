@@ -26,6 +26,9 @@ create table if not exists public.families (
   user_id uuid not null unique references public.profiles(id) on delete cascade,
   full_name text,
   phone text,
+  phone_number text,
+  preferred_contact_method text check (preferred_contact_method in ('email', 'phone', 'sms')),
+  onboarding_completed boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

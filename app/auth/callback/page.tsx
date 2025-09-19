@@ -24,19 +24,39 @@ export default function AuthCallbackPage() {
         // Small delay to ensure session is properly set in cookies
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        const response = await fetch('/api/profile/ensure', { method: 'POST' });
+        // Get role from URL params or default to provider
+        const role = params.get('role') || 'provider';
+        
+        const response = await fetch('/api/profile/ensure', { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role })
+        });
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Profile creation failed');
         }
         
         toast.success('Email confirmed');
-        router.replace('/provider/onboarding/step-1');
+        
+        // Redirect based on role
+        if (role === 'family') {
+          router.replace('/family/dashboard');
+        } else {
+          router.replace('/provider/onboarding/step-1');
+        }
       } catch (e: any) {
         console.error('Auth callback error:', e);
         setStatus('Could not complete confirmation. Please sign in.');
         toast.error('Confirmation failed');
-        router.replace('/provider/login');
+        
+        // Redirect to appropriate login based on role
+        const role = params.get('role') || 'provider';
+        if (role === 'family') {
+          router.replace('/family/login');
+        } else {
+          router.replace('/provider/login');
+        }
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps

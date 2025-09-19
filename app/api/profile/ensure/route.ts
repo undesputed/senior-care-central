@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createClient()
   
   // Get the session from cookies
@@ -12,15 +12,29 @@ export async function POST() {
   }
 
   const user = session.user
-  const role = (user.user_metadata?.role as string) || 'provider'
+  
+  // Get role from request body or user metadata
+  let role = (user.user_metadata?.role as string) || 'provider'
+  try {
+    const body = await request.json()
+    if (body.role) {
+      role = body.role
+    }
+  } catch {
+    // No body or invalid JSON, use default
+  }
 
   // Check if profile already exists
   const { data: profile } = await supabase.from('profiles').select('id').eq('id', user.id).maybeSingle()
   if (!profile) {
+    const displayName = role === 'family' 
+      ? (user.user_metadata?.full_name || user.email)
+      : (user.user_metadata?.owner_name || user.email)
+    
     const { error } = await supabase.from('profiles').insert({ 
       id: user.id, 
       role, 
-      display_name: user.user_metadata?.owner_name || user.email 
+      display_name: displayName
     })
     if (error) {
       console.error('Profile creation error:', error)
@@ -51,7 +65,8 @@ export async function POST() {
     if (!fam) {
       const { error } = await supabase.from('families').insert({ 
         user_id: user.id, 
-        full_name: user.user_metadata?.full_name || user.email 
+        full_name: user.user_metadata?.full_name || user.email,
+        preferred_contact_method: 'email'
       })
       if (error) {
         console.error('Family creation error:', error)
