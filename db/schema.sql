@@ -37,11 +37,35 @@ create table if not exists public.families (
   updated_at timestamptz not null default now()
 );
 
+-- Patients (many-to-one with families)
+create table if not exists public.patients (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references public.families(id) on delete cascade,
+  full_name text not null,
+  age int,
+  relationship text, -- e.g., 'Mother', 'Father', 'Spouse', 'Self'
+  care_level text check (care_level in ('independent', 'assisted', 'skilled', 'memory_care', 'hospice')),
+  medical_conditions text[],
+  care_needs text[],
+  status text not null default 'active' check (status in ('active', 'inactive', 'deceased')),
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.families enable row level security;
 
 drop policy if exists families_rw_self on public.families;
 create policy families_rw_self on public.families
 for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+alter table public.patients enable row level security;
+
+drop policy if exists patients_rw_own_family on public.patients;
+create policy patients_rw_own_family on public.patients
+for all to authenticated 
+using (family_id in (select id from public.families where user_id = auth.uid()))
+with check (family_id in (select id from public.families where user_id = auth.uid()));
 
 create table if not exists public.agencies (
   id uuid primary key default gen_random_uuid(),

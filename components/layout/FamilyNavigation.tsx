@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FileText, MessageCircle, User } from "lucide-react";
+import { Home, FileText, MessageCircle, User, Users } from "lucide-react";
 
 interface NavigationItem {
   name: string;
@@ -12,6 +12,7 @@ interface NavigationItem {
 
 const navigationItems: NavigationItem[] = [
   { name: 'Home', href: '/family/dashboard', icon: Home },
+  { name: 'Patient', href: '/family/patients', icon: Users },
   { name: 'Contract', href: '/family/contracts', icon: FileText },
   { name: 'Message', href: '/family/messages', icon: MessageCircle },
   { name: 'Profile', href: '/family/profile', icon: User },
