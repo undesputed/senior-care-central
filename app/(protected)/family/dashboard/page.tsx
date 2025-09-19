@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import FamilyDashboardLayout from "@/components/layout/FamilyDashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Search, MapPin, Star, MessageCircle, Calendar, FileText } from "lucide-react";
-import { FamilySignOutButton } from "@/components/family/FamilySignOutButton";
 
 export default async function FamilyDashboardPage() {
   const supabase = await createClient();
@@ -23,26 +23,10 @@ export default async function FamilyDashboardPage() {
     .maybeSingle();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">Senior Care Central</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Welcome, {family?.full_name || user.email}
-              </span>
-              <FamilySignOutButton />
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <FamilyDashboardLayout 
+      title="Dashboard" 
+      userName={family?.full_name || user.email}
+    >
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
@@ -189,7 +173,6 @@ export default async function FamilyDashboardPage() {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+    </FamilyDashboardLayout>
   );
 }
