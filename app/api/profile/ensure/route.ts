@@ -4,14 +4,12 @@ import { createClient } from '@/lib/supabase/server'
 export async function POST(request: Request) {
   const supabase = await createClient()
   
-  // Get the session from cookies
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+  // Get the authenticated user (more secure than getSession)
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
   
-  if (sessionError || !session?.user) {
-    return NextResponse.json({ error: 'Unauthorized - No valid session' }, { status: 401 })
+  if (userError || !user) {
+    return NextResponse.json({ error: 'Unauthorized - No valid user' }, { status: 401 })
   }
-
-  const user = session.user
   
   // Get role from request body or user metadata
   let role = (user.user_metadata?.role as string) || 'provider'

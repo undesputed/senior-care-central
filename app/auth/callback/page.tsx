@@ -18,6 +18,16 @@ export default function AuthCallbackPage() {
       try {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
         if (exchangeError) {
+          // Handle specific error cases
+          if (exchangeError.message.includes('expired') || exchangeError.message.includes('invalid')) {
+            setStatus('This verification link has expired or is invalid. Please request a new one.');
+            toast.error('Verification link expired');
+            setTimeout(() => {
+              const role = params.get('role') || 'provider';
+              router.replace(role === 'family' ? '/family/login' : '/provider/login');
+            }, 3000);
+            return;
+          }
           throw exchangeError;
         }
         

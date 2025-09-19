@@ -20,6 +20,10 @@ drop policy if exists profiles_update_self on public.profiles;
 create policy profiles_update_self on public.profiles
 for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
 
+drop policy if exists profiles_insert_self on public.profiles;
+create policy profiles_insert_self on public.profiles
+for insert to authenticated with check (id = auth.uid());
+
 -- Family accounts (one-to-one with profiles where role = 'family')
 create table if not exists public.families (
   id uuid primary key default gen_random_uuid(),
