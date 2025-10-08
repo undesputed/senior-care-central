@@ -103,7 +103,7 @@ export default function ServicesForm() {
       <p className="text-sm text-muted-foreground">* Select at least one service</p>
       <div className="flex items-center justify-between">
         <Link href="/provider/onboarding/step-1" className="underline">Back</Link>
-        <Button onClick={onSaveNext} disabled={saving} style={{ backgroundColor: "#9bc3a2" }}>Next</Button>
+        <Button onClick={onSaveNext} disabled={saving} className="bg-green-600 hover:bg-green-700">Next</Button>
       </div>
     </div>
   );

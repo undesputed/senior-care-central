@@ -1,4 +1,22 @@
 import { createClient } from "@/lib/supabase/server";
+import ProviderInvoicesClient from "./ProviderInvoicesClient";
+
+export default async function ProviderInvoicesPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data: agency } = await supabase
+    .from('agencies')
+    .select('id, business_name')
+    .eq('owner_id', user?.id)
+    .single();
+
+  return (
+    <ProviderInvoicesClient agencyId={agency?.id || ''} />
+  );
+}
+
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 

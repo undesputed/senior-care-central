@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { toast } from "sonner";
 import { Mail, ArrowLeft } from "lucide-react";
@@ -119,8 +120,7 @@ export default function FamilyResetPasswordPage() {
               type="submit"
               loading={loading}
               loadingText="Sending reset email..."
-              className="w-full"
-              style={{ backgroundColor: "#9bc3a2" }}
+              className="w-full bg-green-600 hover:bg-green-700"
             >
               Send Reset Email
             </LoadingButton>

@@ -436,7 +436,7 @@ export default function Step1Form({ email }: { email: string | null }) {
           loadingText="Saving..."
           onClick={onNext}
           disabled={!isValid}
-          style={{ backgroundColor: "#9bc3a2" }}
+          className="bg-green-600 hover:bg-green-700"
         >
           Next
         </LoadingButton>

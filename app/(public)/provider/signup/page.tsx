@@ -117,8 +117,7 @@ export default function ProviderSignupPage() {
               type="submit"
               loading={loading}
               loadingText="Creating account..."
-              className="w-full"
-              style={{ backgroundColor: "#9bc3a2" }}
+              className="w-full bg-green-600 hover:bg-green-700"
             >
               <UserPlus className="h-4 w-4 mr-2" />
               Create account

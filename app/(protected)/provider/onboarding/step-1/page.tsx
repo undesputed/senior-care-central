@@ -15,16 +15,24 @@ export default async function OnboardingStep1Page() {
     redirect("/provider/login");
   }
 
-  // Ensure draft agency exists for this user
-  const { data: existing } = await supabase
+  // Ensure draft agency exists for this user (upsert to prevent duplicates)
+  const { error } = await supabase
     .from('agencies')
-    .select('id')
-    .eq('owner_id', user.id)
-    .limit(1)
-    .maybeSingle();
-
-  if (!existing) {
-    await supabase.from('agencies').insert({ owner_id: user.id, email: user.email, status: 'draft' });
+    .upsert(
+      { 
+        owner_id: user.id, 
+        email: user.email, 
+        status: 'draft' 
+      },
+      { 
+        onConflict: 'owner_id',
+        ignoreDuplicates: false
+      }
+    );
+  
+  if (error) {
+    console.error('Error ensuring agency exists:', error);
+    // Continue anyway - the user might already have an agency
   }
 
   return (

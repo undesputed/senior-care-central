@@ -7,12 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ViewToggle from "./ViewToggle";
 
+interface FilterTab {
+  name: string;
+  count: number;
+  active?: boolean;
+  hasNotification?: boolean;
+}
+
 interface DashboardLayoutProps {
   children: React.ReactNode;
   title: string;
   showSearch?: boolean;
   showFilters?: boolean;
   showViewToggle?: boolean;
+  filterTabs?: FilterTab[];
+  onFilterChange?: (filterName: string) => void;
 }
 
 export default function DashboardLayout({ 
@@ -20,7 +29,9 @@ export default function DashboardLayout({
   title, 
   showSearch = false, 
   showFilters = false, 
-  showViewToggle = false 
+  showViewToggle = false,
+  filterTabs = [],
+  onFilterChange
 }: DashboardLayoutProps) {
   const pathname = usePathname();
 
@@ -32,14 +43,8 @@ export default function DashboardLayout({
     { name: 'Profile', href: '/provider/profile' },
   ];
 
-  const filterTabs = [
-    { name: 'All', count: 18, active: true },
-    { name: 'Invited', count: 4, hasNotification: true },
-    { name: 'Engaged', count: 8 },
-    { name: 'Negotiating', count: 4 },
-    { name: 'Confirmed', count: 2 },
-    { name: 'Closed', count: 2 },
-  ];
+  // Use provided filterTabs or default empty array
+  const defaultFilterTabs = filterTabs.length > 0 ? filterTabs : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -109,9 +114,9 @@ export default function DashboardLayout({
         {(showFilters || showViewToggle) && (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
             {/* Filter Tabs */}
-            {showFilters && (
+            {showFilters && defaultFilterTabs.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {filterTabs.map((tab) => (
+                {defaultFilterTabs.map((tab) => (
                   <Button
                     key={tab.name}
                     variant={tab.active ? "default" : "outline"}
@@ -121,6 +126,7 @@ export default function DashboardLayout({
                         ? 'bg-green-600 hover:bg-green-700 text-white' 
                         : 'bg-white hover:bg-gray-50 text-gray-700'
                     }`}
+                    onClick={() => onFilterChange?.(tab.name)}
                   >
                     {tab.name} ({tab.count})
                     {tab.hasNotification && (

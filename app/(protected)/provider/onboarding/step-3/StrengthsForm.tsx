@@ -120,8 +120,7 @@ export default function StrengthsForm() {
         <Button 
           onClick={onSaveNext} 
           disabled={saving || total > MAX_TOTAL} 
-          style={{ backgroundColor: "#9bc3a2" }}
-          className="px-6"
+          className="bg-green-600 hover:bg-green-700 px-6"
         >
           {saving ? "Saving..." : "Next →"}
         </Button>

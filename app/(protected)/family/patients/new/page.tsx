@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import FamilyDashboardLayout from "@/components/layout/FamilyDashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, ArrowLeft, User, Heart, FileText } from "lucide-react";
@@ -24,10 +23,6 @@ export default async function AddPatientPage() {
     .maybeSingle();
 
   return (
-    <FamilyDashboardLayout 
-      title="Add New Patient" 
-      userName={family?.full_name || user.email}
-    >
       <div className="space-y-6">
         {/* Back Button */}
         <div className="flex items-center">
@@ -147,15 +142,14 @@ export default async function AddPatientPage() {
                   Back to Patients
                 </Button>
               </Link>
-              <Link href="/family/dashboard">
-                <Button style={{ backgroundColor: "#9bc3a2" }}>
-                  Go to Dashboard
+              <Link href="/family/patients/onboarding">
+                <Button className="bg-green-600 hover:bg-green-700">
+                  Start Patient Onboarding
                 </Button>
               </Link>
             </div>
           </CardContent>
         </Card>
       </div>
-    </FamilyDashboardLayout>
   );
 }

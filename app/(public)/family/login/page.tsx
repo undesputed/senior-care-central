@@ -225,8 +225,7 @@ export default function FamilyLoginPage() {
               type="submit"
               loading={loading}
               loadingText="Signing in..."
-              className="w-full"
-              style={{ backgroundColor: "#9bc3a2" }}
+              className="w-full bg-green-600 hover:bg-green-700"
             >
               <LogIn className="h-4 w-4 mr-2" />
               Sign In

@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import FamilyDashboardLayout from "@/components/layout/FamilyDashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Mail, Phone, Calendar, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LogoutButton from "./LogoutButton";
 
 export default async function FamilyProfilePage() {
   const supabase = await createClient();
@@ -23,11 +23,6 @@ export default async function FamilyProfilePage() {
     .maybeSingle();
 
   return (
-    <FamilyDashboardLayout 
-      title="Profile" 
-      userName={family?.full_name || user.email}
-      showWelcome={false}
-    >
       <div className="space-y-6">
         {/* Profile Header */}
         <Card>
@@ -42,10 +37,13 @@ export default async function FamilyProfilePage() {
                   <p className="text-gray-600">Family Account</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Profile
-              </Button>
+              <div className="flex space-x-2">
+                <Button variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Button>
+                <LogoutButton />
+              </div>
             </div>
           </CardHeader>
         </Card>
@@ -112,6 +110,10 @@ export default async function FamilyProfilePage() {
                   <p className="text-green-600 font-medium">Active</p>
                 </div>
               </div>
+
+              <div className="pt-4 border-t">
+                <LogoutButton />
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -146,6 +148,5 @@ export default async function FamilyProfilePage() {
           </CardContent>
         </Card>
       </div>
-    </FamilyDashboardLayout>
   );
 }

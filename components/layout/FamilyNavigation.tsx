@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FileText, MessageCircle, User, Users } from "lucide-react";
+import { Home, FileText, MessageCircle, User, Users, Bell } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 interface NavigationItem {
   name: string;
@@ -20,6 +22,21 @@ const navigationItems: NavigationItem[] = [
 
 export default function FamilyNavigation() {
   const pathname = usePathname();
+  const supabase = createClient();
+  const [unread, setUnread] = useState<number>(0);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from('notifications')
+        .select('id, is_read')
+        .eq('role','family')
+        .order('created_at', { ascending: false });
+      const rows = (data || []) as any[];
+      setUnread(rows.filter(r=>!r.is_read).length);
+    };
+    load();
+  }, [supabase, pathname]);
 
   return (
     <>
@@ -56,8 +73,15 @@ export default function FamilyNavigation() {
               ))}
             </div>
 
-            {/* Right side - empty for now (no notification bell) */}
-            <div className="w-8"></div>
+            {/* Right side - notification bell */}
+            <div className="relative">
+              <Link href="/family/notifications" className="p-2 rounded hover:bg-gray-50">
+                <Bell className="w-5 h-5 text-gray-700" />
+                {unread>0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1">{unread}</span>
+                )}
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
