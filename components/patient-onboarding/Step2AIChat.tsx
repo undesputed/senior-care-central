@@ -132,6 +132,52 @@ export default function Step2AIChat() {
     goToNextStep();
   };
 
+  const handleNext = async () => {
+    if (!hasProvidedInfo) return;
+    
+    setIsAnalyzing(true);
+    
+    try {
+      // Generate AI summary of the conversation
+      const response = await fetch('/api/patient-onboarding/ai/summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: messages,
+          sessionId: state.sessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate summary');
+      }
+
+      const summaryData = await response.json();
+      
+      // Update the AI analysis with the generated summary
+      dispatch({
+        type: 'SET_AI_ANALYSIS',
+        payload: {
+          detectedConditions: state.aiAnalysis?.detectedConditions || [],
+          careNeeds: state.aiAnalysis?.careNeeds || [],
+          suggestedServices: state.aiAnalysis?.suggestedServices || [],
+          confidenceScore: state.aiAnalysis?.confidenceScore || 0.5,
+          isComplete: state.aiAnalysis?.isComplete || false,
+          patientSummary: summaryData.summary,
+        }
+      });
+
+      toast.success("AI summary generated successfully!");
+      goToNextStep();
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      toast.error('Failed to generate summary. Proceeding without it.');
+      goToNextStep();
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -156,13 +202,14 @@ export default function Step2AIChat() {
                   <div
                     className={`max-w-[80%] rounded-lg p-3 ${
                       message.type === 'user'
-                        ? 'bg-green-600 text-white'
+                        ? 'text-white'
                         : 'bg-white border border-gray-200'
                     }`}
+                    style={message.type === 'user' ? { backgroundColor: '#71A37A' } : {}}
                   >
                     <div className="flex items-start space-x-2">
                       {message.type === 'ai' && (
-                        <Bot className="w-4 h-4 mt-1 text-green-600 flex-shrink-0" />
+                        <Bot className="w-4 h-4 mt-1 flex-shrink-0" style={{ color: '#71A37A' }} />
                       )}
                       {message.type === 'user' && (
                         <User className="w-4 h-4 mt-1 text-white flex-shrink-0" />
@@ -187,11 +234,11 @@ export default function Step2AIChat() {
                 <div className="flex justify-start">
                   <div className="bg-white border border-gray-200 rounded-lg p-3">
                     <div className="flex items-center space-x-2">
-                      <Bot className="w-4 h-4 text-green-600" />
+                      <Bot className="w-4 h-4" style={{ color: '#71A37A' }} />
                       <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: '#71A37A' }}></div>
+                        <div className="w-2 h-2 rounded-full animate-bounce" style={{ animationDelay: '0.1s', backgroundColor: '#71A37A' }}></div>
+                        <div className="w-2 h-2 rounded-full animate-bounce" style={{ animationDelay: '0.2s', backgroundColor: '#71A37A' }}></div>
                       </div>
                     </div>
                   </div>
@@ -215,7 +262,8 @@ export default function Step2AIChat() {
               <Button
                 onClick={handleSendMessage}
                 disabled={!inputText.trim() || isAnalyzing}
-                className="bg-green-600 hover:bg-green-700 text-white px-4"
+                className="text-white px-4"
+                style={{ backgroundColor: '#71A37A' }}
               >
                 <Send className="w-4 h-4" />
               </Button>
@@ -225,45 +273,59 @@ export default function Step2AIChat() {
             </p>
           </div>
 
-          {/* Progress Indicator */}
-          {hasProvidedInfo && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <p className="text-sm text-green-800">
-                  Great! I've analyzed your information. You can continue the conversation or proceed to review my suggestions.
-                </p>
-              </div>
-            </div>
-          )}
+      {/* Progress Indicator */}
+      {hasProvidedInfo && (
+        <div className="rounded-lg p-3" style={{ backgroundColor: '#f0f9f0', border: '1px solid #71A37A' }}>
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#71A37A' }}></div>
+            <p className="text-sm" style={{ color: '#2d5a2d' }}>
+              Great! I've analyzed your information. You can continue the conversation or proceed to review my suggestions.
+            </p>
+          </div>
+        </div>
+      )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between pt-6">
+          <div className="flex flex-col items-center space-y-4 pt-6">
             <Button
-              variant="outline"
-              onClick={goToPreviousStep}
-              className="border-gray-300"
+              onClick={handleNext}
+              disabled={!hasProvidedInfo || isAnalyzing}
+              className="text-white font-medium flex items-center justify-center hover:opacity-90"
+              style={{ 
+                backgroundColor: '#71A37A',
+                width: '358px',
+                height: '54px',
+                borderRadius: '8px',
+                padding: '16px'
+              }}
             >
-              Previous
+              {isAnalyzing ? 'Generating Summary...' : 'NEXT →'}
             </Button>
             <div className="flex space-x-3">
               <Button
                 variant="outline"
                 onClick={handleSkip}
                 className="border-gray-300"
+                style={{ width: '175px' }}
               >
                 <SkipForward className="w-4 h-4 mr-2" />
                 Skip This Step
               </Button>
-              <LoadingButton
-                onClick={goToNextStep}
-                loading={isAnalyzing}
-                loadingText="Analyzing..."
-                className="bg-green-600 hover:bg-green-700 text-white"
-                disabled={!hasProvidedInfo}
+              <Button
+                type="button"
+                className="text-white font-medium flex items-center justify-center hover:opacity-90"
+                style={{ 
+                  backgroundColor: '#ffffff',
+                  color: '#000000',
+                  width: '175px',
+                  height: '54px',
+                  borderRadius: '8px',
+                  padding: '16px'
+                }}
+                onClick={goToPreviousStep}
               >
-                Continue to Review
-              </LoadingButton>
+                CANCEL
+              </Button>
             </div>
           </div>
         </div>

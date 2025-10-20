@@ -140,6 +140,17 @@ export default function FamilyDashboardClient() {
   });
   const [verifiedOnly, setVerifiedOnly] = useState(true);
 
+  // Check if any filters are active
+  const hasActiveFilters = () => {
+    return location !== "" || 
+           Object.values(careTypes).some(Boolean) ||
+           priceRange !== "" ||
+           Object.values(genderPreference).some(Boolean) ||
+           Object.values(specialtyServices).some(Boolean) ||
+           Object.values(ratings).some(Boolean) ||
+           verifiedOnly;
+  };
+
   const toggleFavorite = (agencyId: string) => {
     setFavorites(prev => {
       const newFavorites = new Set(prev);
@@ -189,7 +200,8 @@ export default function FamilyDashboardClient() {
           <Button 
             variant="outline" 
             size="sm" 
-            className="mt-6"
+            className={`mt-6 ${hasActiveFilters() ? 'text-white' : ''}`}
+            style={hasActiveFilters() ? { backgroundColor: '#71A37A', borderColor: '#71A37A' } : {}}
             onClick={() => setIsFilterOpen(true)}
           >
             <Filter className="w-4 h-4" />
@@ -202,7 +214,7 @@ export default function FamilyDashboardClient() {
         {agencies.map((agency) => (
           <Card 
             key={agency.id} 
-            className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+            className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer flex flex-col h-full bg-white"
             onClick={() => {
               // Navigate to agency details page
               window.location.href = `/family/agencies/${agency.id}`;
@@ -216,15 +228,18 @@ export default function FamilyDashboardClient() {
                 className="w-full h-48 object-cover"
               />
               {/* Match Badge */}
-              <Badge className="absolute top-3 left-3 bg-green-600 text-white">
+              <Badge className="absolute top-3 left-3 bg-green-600 text-white rounded-md px-2 py-1 text-sm font-medium">
                 Matched {agency.matchPercentage}%
               </Badge>
               {/* Favorite Button */}
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute top-3 right-3 p-2 bg-white/80 hover:bg-white"
-                onClick={() => toggleFavorite(agency.id)}
+                className="absolute top-3 right-3 p-2 bg-white/90 hover:bg-white border border-gray-200 rounded-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(agency.id);
+                }}
               >
                 <Heart 
                   className={`w-4 h-4 ${
@@ -236,10 +251,10 @@ export default function FamilyDashboardClient() {
               </Button>
             </div>
 
-            <CardContent className="p-4">
+            <CardContent className="px-4 pt-4 pb-0 flex flex-col h-full">
               {/* Agency Name and Address */}
-              <div className="mb-3">
-                <h3 className="font-bold text-gray-900 text-lg">{agency.name}</h3>
+              <div className="mb-4">
+                <h3 className="font-bold text-gray-900 text-lg mb-2">{agency.name}</h3>
                 <p className="text-sm text-gray-600 flex items-center">
                   <MapPin className="w-3 h-3 mr-1" />
                   {agency.address}
@@ -249,13 +264,13 @@ export default function FamilyDashboardClient() {
               {/* Price and Rating */}
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-xs text-gray-500">Price range</p>
+                  <p className="text-xs text-gray-500 mb-1">Price range</p>
                   <p className="text-lg font-semibold text-green-600">{agency.priceRange}</p>
                 </div>
                 <div className="text-right">
-                  <div className="flex items-center">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="font-medium text-gray-900">{agency.rating} rating</span>
+                  <div className="flex items-center justify-end mb-1">
+                    <Star className="w-4 h-4 fill-green-500 text-green-500 mr-1" />
+                    <span className="font-medium text-green-600">{agency.rating} rating</span>
                   </div>
                   <p className="text-xs text-gray-500">based on {agency.reviewCount} reviews</p>
                 </div>
@@ -268,8 +283,8 @@ export default function FamilyDashboardClient() {
                   {agency.specialties.map((specialty, index) => (
                     <Badge 
                       key={index} 
-                      variant="secondary" 
-                      className="text-xs bg-gray-100 text-gray-700"
+                      variant="outline" 
+                      className="text-xs bg-gray-50 text-gray-700 border-gray-300 rounded-full px-2 py-1"
                     >
                       {specialty}
                     </Badge>
@@ -278,16 +293,18 @@ export default function FamilyDashboardClient() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex space-x-2">
+              <div className="flex space-x-2 mt-auto -mx-4 -mb-4 -mt-4" style={{ marginBottom: '-16px' }}>
                 <Button 
                   variant="outline" 
-                  className="flex-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                  className="flex-1 text-gray-700 rounded-none border-gray-200"
+                  style={{ backgroundColor: 'transparent' }}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
                   INVITE
                 </Button>
                 <Button 
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  className="flex-1 text-white rounded-none"
+                  style={{ backgroundColor: '#71A37A' }}
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   MESSAGE
@@ -337,7 +354,7 @@ export default function FamilyDashboardClient() {
                     <div key={type} className="flex items-center space-x-2">
                       <Checkbox
                         id={`care-${type}`}
-                        checked={careTypes[type]}
+                        checked={careTypes[type as keyof typeof careTypes]}
                         onCheckedChange={(checked) => handleCareTypeChange(type, checked as boolean)}
                       />
                       <Label htmlFor={`care-${type}`} className="text-sm">{type}</Label>
@@ -381,7 +398,7 @@ export default function FamilyDashboardClient() {
                     <div key={preference} className="flex items-center space-x-2">
                       <Checkbox
                         id={`gender-${preference}`}
-                        checked={genderPreference[preference]}
+                        checked={genderPreference[preference as keyof typeof genderPreference]}
                         onCheckedChange={(checked) => handleGenderPreferenceChange(preference, checked as boolean)}
                       />
                       <Label htmlFor={`gender-${preference}`} className="text-sm">{preference}</Label>
@@ -401,7 +418,7 @@ export default function FamilyDashboardClient() {
                     <div key={service} className="flex items-center space-x-2">
                       <Checkbox
                         id={`specialty-${service}`}
-                        checked={specialtyServices[service]}
+                        checked={specialtyServices[service as keyof typeof specialtyServices]}
                         onCheckedChange={(checked) => handleSpecialtyServiceChange(service, checked as boolean)}
                       />
                       <Label htmlFor={`specialty-${service}`} className="text-sm">{service}</Label>
@@ -418,7 +435,7 @@ export default function FamilyDashboardClient() {
                     <div key={rating} className="flex items-center space-x-2">
                       <Checkbox
                         id={`rating-${rating}`}
-                        checked={ratings[rating]}
+                        checked={ratings[rating as keyof typeof ratings]}
                         onCheckedChange={(checked) => handleRatingChange(rating, checked as boolean)}
                       />
                       <Label htmlFor={`rating-${rating}`} className="text-sm">{rating}</Label>

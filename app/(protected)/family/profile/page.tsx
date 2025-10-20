@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Phone, Calendar, Edit } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { User, Mail, Phone, MapPin, ChevronRight } from "lucide-react";
 import LogoutButton from "./LogoutButton";
 
 export default async function FamilyProfilePage() {
@@ -22,131 +21,104 @@ export default async function FamilyProfilePage() {
     .eq('user_id', user.id)
     .maybeSingle();
 
+  // Derive initial for avatar
+  const displayName = family?.full_name || "Family Member";
+  const initial = (displayName || user.email || "?").trim().charAt(0).toUpperCase();
+
   return (
-      <div className="space-y-6">
-        {/* Profile Header */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                  <User className="h-8 w-8 text-green-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-xl">{family?.full_name || 'Family Member'}</CardTitle>
-                  <p className="text-gray-600">Family Account</p>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Button>
-                <LogoutButton />
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
+    <div className="flex justify-center">
+      <div className="w-full max-w-2xl">
+        {/* Header */}
+        <div className="text-center mt-4 mb-8">
+          <h1 className="text-2xl font-semibold text-gray-900">Profile</h1>
+        </div>
 
-        {/* Profile Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Avatar + Name */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-24 h-24 rounded-full bg-green-200 flex items-center justify-center text-4xl font-semibold text-gray-800">
+            {initial}
+          </div>
+          <div className="mt-4 text-center">
+            <p className="text-lg font-semibold text-gray-900">{displayName}</p>
+            <p className="text-sm text-gray-600">{user.email}</p>
+          </div>
+        </div>
+
+        {/* Personal Info */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Personal Info</h2>
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Contact Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <Mail className="h-5 w-5 text-gray-400" />
-                <div>
-                  <p className="font-medium">Email</p>
-                  <p className="text-gray-600">{user.email}</p>
+            <CardContent className="p-0">
+              <div>
+                <div className="flex items-center justify-between px-5 py-4 text-[15px]">
+                  <span className="text-gray-700">Phone</span>
+                  <span className="text-gray-900">{family?.phone || family?.phone_number || "—"}</span>
                 </div>
-              </div>
-              
-              {family?.phone_number && (
-                <div className="flex items-center space-x-3">
-                  <Phone className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium">Phone</p>
-                    <p className="text-gray-600">{family.phone_number}</p>
-                  </div>
+                <hr className="border-t border-green-200" />
+                <div className="flex items-start justify-between px-5 py-4 text-[15px]">
+                  <span className="text-gray-700">Address</span>
+                  <span className="text-right text-gray-900 max-w-[70%] leading-6">
+                    {family?.address || family?.address_line || "—"}
+                  </span>
                 </div>
-              )}
-
-              {family?.preferred_contact_method && (
-                <div className="flex items-center space-x-3">
-                  <User className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium">Preferred Contact</p>
-                    <p className="text-gray-600 capitalize">{family.preferred_contact_method}</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Account Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <Calendar className="h-5 w-5 text-gray-400" />
-                <div>
-                  <p className="font-medium">Member Since</p>
-                  <p className="text-gray-600">
-                    {family?.created_at 
-                      ? new Date(family.created_at).toLocaleDateString()
-                      : 'Recently joined'
-                    }
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <User className="h-5 w-5 text-gray-400" />
-                <div>
-                  <p className="font-medium">Account Status</p>
-                  <p className="text-green-600 font-medium">Active</p>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t">
-                <LogoutButton />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Coming Soon Features */}
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader>
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <User className="h-6 w-6 text-green-600" />
+        {/* Settings List */}
+        <div className="space-y-2">
+          {["Account & Security",
+            "Care Recipient Settings",
+            "Payment & Billing",
+            "Notifications",
+            "Privacy & Consent",
+          ].map((label) => (
+            <Card key={label}>
+              <CardContent className="p-0">
+                {label === 'Account & Security' ? (
+                  <a href="/family/profile/account" className="w-full flex items-center justify-between px-5 py-5 text-[18px] font-semibold text-gray-900">
+                    <span>{label}</span>
+                    <ChevronRight className="w-5 h-5 text-green-600" />
+                  </a>
+                ) : (
+                  label === 'Care Recipient Settings' ? (
+                    <a href="/family/profile/care-recipients" className="w-full flex items-center justify-between px-5 py-5 text-[18px] font-semibold text-gray-900">
+                      <span>{label}</span>
+                      <ChevronRight className="w-5 h-5 text-green-600" />
+                    </a>
+                  ) : (
+                    label === 'Privacy & Consent' ? (
+                      <a href="/family/profile/privacy" className="w-full flex items-center justify-between px-5 py-5 text-[18px] font-semibold text-gray-900">
+                        <span>{label}</span>
+                        <ChevronRight className="w-5 h-5 text-green-600" />
+                      </a>
+                    ) : (
+                      <button className="w-full flex items-center justify-between px-5 py-5 text-[18px] font-semibold text-gray-900">
+                        <span>{label}</span>
+                        <ChevronRight className="w-5 h-5 text-green-600" />
+                      </button>
+                    )
+                  )
+                )}
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* Logout row */}
+          <Card>
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between px-5 py-5">
+                <span className="text-[18px] font-semibold text-red-600">Logout</span>
+                <div className="flex items-center gap-3">
+                  <LogoutButton />
+                  <ChevronRight className="w-5 h-5 text-red-600" />
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-green-900">Enhanced Profile Features</CardTitle>
-                <p className="text-green-700 text-sm">Coming Soon</p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-green-800 mb-4">
-              We're working on additional profile features to help you manage your family's care needs better.
-            </p>
-            <div className="text-sm text-green-700">
-              <p className="font-medium mb-2">Upcoming features:</p>
-              <ul className="space-y-1">
-                <li>• Family member profiles and care preferences</li>
-                <li>• Emergency contact management</li>
-                <li>• Care history and notes</li>
-                <li>• Document storage and sharing</li>
-                <li>• Notification preferences</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+    </div>
   );
 }

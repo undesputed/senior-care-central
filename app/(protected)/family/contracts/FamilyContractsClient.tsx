@@ -15,7 +15,7 @@ interface Row {
   contract_id: string;
   created_at: string;
   rate: number;
-  agencies: { id: string; business_name: string };
+  agencies: { id: string; business_name: string } | null;
   patients: { id: string; full_name: string; families: { full_name: string } };
 }
 
@@ -36,7 +36,7 @@ export default function FamilyContractsClient() {
       const { data } = await supabase
         .from('contracts')
         .select(`id,status,contract_id,created_at,rate,
-                 agencies(id,business_name),
+                 agencies!inner(id,business_name),
                  patients(id,full_name,families(full_name))`)
         .eq('family_id', family.id)
         .order('created_at', { ascending: false });
@@ -83,23 +83,23 @@ export default function FamilyContractsClient() {
 
       {/* Tabs */}
       <div className="flex justify-center">
-        <div className="flex bg-gray-100 rounded-lg p-1">
+        <div className="flex w-[396px] h-14 border border-gray-300 rounded-lg overflow-hidden">
           <button
             onClick={() => setActiveTab("care-confirmed")}
-            className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`w-[198px] h-14 text-sm font-medium transition-colors rounded-l-md border-r border-gray-300 ${
               activeTab === "care-confirmed"
-                ? "bg-green-600 text-white shadow-sm"
-                : "text-gray-600 hover:text-gray-900"
+                ? "bg-[#71A37A] text-white"
+                : "bg-white text-gray-700 hover:text-gray-900"
             }`}
           >
             Care-Confirmed
           </button>
           <button
             onClick={() => setActiveTab("invites-sent")}
-            className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`w-[198px] h-14 text-sm font-medium transition-colors rounded-r-md ${
               activeTab === "invites-sent"
-                ? "bg-green-600 text-white shadow-sm"
-                : "text-gray-600 hover:text-gray-900"
+                ? "bg-[#71A37A] text-white"
+                : "bg-white text-gray-700 hover:text-gray-900"
             }`}
           >
             Invites Sent
@@ -109,7 +109,10 @@ export default function FamilyContractsClient() {
 
       {/* Contract Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(loading ? [] : filtered).map((c) => (
+        {(loading ? [] : filtered).map((c) => {
+          const agencyName = c.agencies?.business_name ?? 'Agency (unavailable)';
+          const agencyId = c.agencies?.id;
+          return (
           <Card key={c.id} className="bg-green-50 border-green-200 hover:shadow-md transition-shadow">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
@@ -123,7 +126,7 @@ export default function FamilyContractsClient() {
                 {/* Middle: Contract Info */}
                 <div className="flex-1 mx-3">
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-sm truncate">{c.agencies.business_name}</h3>
+                    <h3 className="font-semibold text-gray-900 text-sm truncate">{agencyName}</h3>
                     <div className="flex items-center space-x-1 mt-1">
                       <p className="text-xs text-gray-600">For: {c.patients.families.full_name}</p>
                       <Badge className={`${statusBadge(c.status)} text-xs px-1 py-0`}>
@@ -144,13 +147,13 @@ export default function FamilyContractsClient() {
               {/* Actions for pending contracts */}
               {['sent','under_review'].includes(c.status) && (
                 <div className="flex gap-2 mt-3">
-                  <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={()=>acceptContract(c.id, c.agencies.id)}>Accept</Button>
-                  <Button variant="outline" className="border-red-600 text-red-600 hover:bg-red-50" onClick={()=>declineContract(c.id, c.agencies.id)}>Decline</Button>
+                  <Button disabled={!agencyId} className="bg-green-600 hover:bg-green-700 text-white" onClick={()=>agencyId && acceptContract(c.id, agencyId)}>Accept</Button>
+                  <Button disabled={!agencyId} variant="outline" className="border-red-600 text-red-600 hover:bg-red-50 disabled:opacity-50" onClick={()=>agencyId && declineContract(c.id, agencyId)}>Decline</Button>
                 </div>
               )}
             </CardContent>
           </Card>
-        ))}
+        );})}
       </div>
 
       {/* Empty State */}

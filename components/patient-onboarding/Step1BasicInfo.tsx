@@ -16,10 +16,20 @@ import { toast } from "sonner";
 
 const schema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
-  gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']),
+  dateOfBirth: z.string().min(1, "Date of birth is required").refine((val) => {
+    const date = new Date(val);
+    return !isNaN(date.getTime()) && date < new Date();
+  }, {
+    message: "Please enter a valid date in the past"
+  }),
+  age: z.number().min(0, "Age must be a positive number"),
+  gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).refine((val) => val !== undefined, {
+    message: "Please select a gender"
+  }),
   relationship: z.string().min(1, "Relationship is required"),
-  bodyType: z.enum(['small', 'medium', 'large']),
+  bodyType: z.enum(['small', 'medium', 'large']).refine((val) => val !== undefined, {
+    message: "Please select a body type"
+  }),
   location: z.string().min(1, "Location is required"),
 });
 
@@ -37,9 +47,11 @@ export default function Step1BasicInfo() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
+    mode: "onChange",
     defaultValues: {
       fullName: state.patientData.fullName,
       dateOfBirth: state.patientData.dateOfBirth,
+      age: 0, // Will be calculated from dateOfBirth
       gender: state.patientData.gender,
       relationship: state.patientData.relationship,
       bodyType: state.patientData.bodyType,
@@ -48,6 +60,28 @@ export default function Step1BasicInfo() {
   });
 
   const watchedValues = watch();
+
+  // Function to calculate age from date of birth
+  const calculateAge = (dateOfBirth: string) => {
+    if (!dateOfBirth) return 0;
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // Watch date of birth and auto-calculate age
+  const dateOfBirth = watch("dateOfBirth");
+  React.useEffect(() => {
+    if (dateOfBirth) {
+      const calculatedAge = calculateAge(dateOfBirth);
+      setValue("age", calculatedAge);
+    }
+  }, [dateOfBirth, setValue]);
 
   const onSubmit = async (data: FormValues) => {
     setLoading(true);
@@ -88,60 +122,83 @@ export default function Step1BasicInfo() {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold text-gray-900">Patient Basic Information</CardTitle>
-        <p className="text-gray-600">
-          Let's start with the basic details about the person needing care.
-        </p>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Full Name */}
-            <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-sm font-medium">
-                Full Name <span className="text-red-500">*</span>
-              </Label>
+    <div className="w-full max-w-2xl mx-auto">
+      <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-6">
+        <div className="space-y-6 w-full flex flex-col items-center">
+            {/* Patient Name */}
+            <div className="flex flex-col items-center">
               <Input
                 id="fullName"
                 type="text"
-                placeholder="Enter full name"
+                placeholder="Patient name"
                 {...register("fullName")}
-                className={errors.fullName ? "border-red-500" : ""}
+                className={`${errors.fullName ? "border-red-500" : ""} bg-white rounded-lg`}
+                style={{
+                  width: '358px',
+                  height: '54px',
+                  borderRadius: '8px',
+                  padding: '16px'
+                }}
               />
               {errors.fullName && (
-                <p className="text-sm text-red-600">{errors.fullName.message}</p>
+                <p className="text-sm text-red-600 mt-1">{errors.fullName.message}</p>
               )}
             </div>
 
             {/* Date of Birth */}
-            <div className="space-y-2">
-              <Label htmlFor="dateOfBirth" className="text-sm font-medium">
-                Date of Birth <span className="text-red-500">*</span>
-              </Label>
+            <div className="flex flex-col items-center">
               <Input
                 id="dateOfBirth"
                 type="date"
+                placeholder="Date of birth"
                 {...register("dateOfBirth")}
-                className={errors.dateOfBirth ? "border-red-500" : ""}
+                className={`${errors.dateOfBirth ? "border-red-500" : ""} bg-white rounded-lg`}
+                style={{
+                  width: '358px',
+                  height: '54px',
+                  borderRadius: '8px',
+                  padding: '16px'
+                }}
               />
               {errors.dateOfBirth && (
-                <p className="text-sm text-red-600">{errors.dateOfBirth.message}</p>
+                <p className="text-sm text-red-600 mt-1">{errors.dateOfBirth.message}</p>
               )}
             </div>
 
-            {/* Gender */}
-            <div className="space-y-2">
-              <Label htmlFor="gender" className="text-sm font-medium">
-                Gender <span className="text-red-500">*</span>
-              </Label>
+            {/* Patient Age (Auto-calculated) */}
+            <div className="flex justify-center">
+              <Input
+                id="age"
+                type="number"
+                placeholder="Age (auto-calculated)"
+                value={watchedValues.age || ''}
+                readOnly
+                className="bg-gray-100 rounded-lg cursor-not-allowed"
+                style={{
+                  width: '358px',
+                  height: '54px',
+                  borderRadius: '8px',
+                  padding: '16px'
+                }}
+              />
+            </div>
+
+            {/* Patient Gender */}
+            <div className="flex flex-col items-center">
               <Select
                 value={watchedValues.gender}
                 onValueChange={(value) => setValue("gender", value as any)}
               >
-                <SelectTrigger className={errors.gender ? "border-red-500" : ""}>
-                  <SelectValue placeholder="Select gender" />
+                <SelectTrigger 
+                  className={`${errors.gender ? "border-red-500" : ""} bg-white rounded-lg`}
+                  style={{
+                    width: '358px',
+                    height: '54px',
+                    borderRadius: '8px',
+                    padding: '16px'
+                  }}
+                >
+                  <SelectValue placeholder="Patient gender" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="male">Male</SelectItem>
@@ -151,21 +208,26 @@ export default function Step1BasicInfo() {
                 </SelectContent>
               </Select>
               {errors.gender && (
-                <p className="text-sm text-red-600">{errors.gender.message}</p>
+                <p className="text-sm text-red-600 mt-1">{errors.gender.message}</p>
               )}
             </div>
 
-            {/* Relationship */}
-            <div className="space-y-2">
-              <Label htmlFor="relationship" className="text-sm font-medium">
-                Relationship <span className="text-red-500">*</span>
-              </Label>
+            {/* Relationship with patient */}
+            <div className="flex flex-col items-center">
               <Select
                 value={watchedValues.relationship}
                 onValueChange={(value) => setValue("relationship", value)}
               >
-                <SelectTrigger className={errors.relationship ? "border-red-500" : ""}>
-                  <SelectValue placeholder="Select relationship" />
+                <SelectTrigger 
+                  className={`${errors.relationship ? "border-red-500" : ""} bg-white rounded-lg`}
+                  style={{
+                    width: '358px',
+                    height: '54px',
+                    borderRadius: '8px',
+                    padding: '16px'
+                  }}
+                >
+                  <SelectValue placeholder="Relationship with patient (e.g., parent, spouse)" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="self">Self</SelectItem>
@@ -180,21 +242,26 @@ export default function Step1BasicInfo() {
                 </SelectContent>
               </Select>
               {errors.relationship && (
-                <p className="text-sm text-red-600">{errors.relationship.message}</p>
+                <p className="text-sm text-red-600 mt-1">{errors.relationship.message}</p>
               )}
             </div>
 
-            {/* Body Type */}
-            <div className="space-y-2">
-              <Label htmlFor="bodyType" className="text-sm font-medium">
-                Body Type <span className="text-red-500">*</span>
-              </Label>
+            {/* Body type */}
+            <div className="flex flex-col items-center">
               <Select
                 value={watchedValues.bodyType}
                 onValueChange={(value) => setValue("bodyType", value as any)}
               >
-                <SelectTrigger className={errors.bodyType ? "border-red-500" : ""}>
-                  <SelectValue placeholder="Select body type" />
+                <SelectTrigger 
+                  className={`${errors.bodyType ? "border-red-500" : ""} bg-white rounded-lg`}
+                  style={{
+                    width: '358px',
+                    height: '54px',
+                    borderRadius: '8px',
+                    padding: '16px'
+                  }}
+                >
+                  <SelectValue placeholder="Body type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="small">Small (under 120 lbs)</SelectItem>
@@ -203,42 +270,64 @@ export default function Step1BasicInfo() {
                 </SelectContent>
               </Select>
               {errors.bodyType && (
-                <p className="text-sm text-red-600">{errors.bodyType.message}</p>
+                <p className="text-sm text-red-600 mt-1">{errors.bodyType.message}</p>
               )}
             </div>
 
-            {/* Location */}
-            <div className="space-y-2">
-              <Label htmlFor="location" className="text-sm font-medium">
-                Location <span className="text-red-500">*</span>
-              </Label>
+            {/* Zip code or Location */}
+            <div className="flex flex-col items-center">
               <LocationAutocomplete
                 id="location"
                 value={watch("location")}
                 onChange={(value) => setValue("location", value)}
-                placeholder="City, State or ZIP code"
-                className={errors.location ? "border-red-500" : ""}
+                placeholder="Zip code or Location"
+                className={`${errors.location ? "border-red-500" : ""} bg-white rounded-lg`}
+                style={{
+                  width: '358px',
+                  height: '54px',
+                  borderRadius: '8px',
+                  padding: '16px'
+                }}
                 onError={(error) => toast.error(error)}
               />
               {errors.location && (
-                <p className="text-sm text-red-600">{errors.location.message}</p>
+                <p className="text-sm text-red-600 mt-1">{errors.location.message}</p>
               )}
             </div>
           </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-end pt-6">
-            <LoadingButton
+          {/* Action Buttons */}
+          <div className="flex flex-col items-center space-y-4 pt-6">
+            <Button
               type="submit"
-              loading={loading}
-              loadingText="Saving..."
-              className="bg-green-600 hover:bg-green-700 text-white px-8"
+              disabled={loading}
+              className="text-white font-medium flex items-center justify-center hover:opacity-90"
+              style={{ 
+                backgroundColor: '#71A37A',
+                width: '358px',
+                height: '54px',
+                borderRadius: '8px',
+                padding: '16px'
+              }}
             >
-              Continue to AI Chat
-            </LoadingButton>
+              {loading ? 'Saving...' : 'NEXT →'}
+            </Button>
+            <Button
+              type="button"
+              className="text-white font-medium flex items-center justify-center hover:opacity-90"
+              style={{ 
+                backgroundColor: '#ffffff',
+                color: '#000000',
+                width: '358px',
+                height: '54px',
+                borderRadius: '8px',
+                padding: '16px'
+              }}
+            >
+              CANCEL
+            </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+      </div>
   );
 }

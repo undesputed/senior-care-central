@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { StreamChat } from 'stream-chat';
 
 interface PatientRequirements {
   patientId: string;
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
       .from('patients')
       .select(`
         id,
+        full_name,
         family_id,
         families!inner(user_id)
       `)
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
     let matchesCreated = 0;
     if (matches.length > 0) {
       for (const match of matches) {
-        const { error: upsertError } = await supabase
+        const { data: upserted, error: upsertError } = await supabase
           .from('care_matches')
           .upsert({
             patient_id: patientId,
@@ -107,11 +109,80 @@ export async function POST(request: NextRequest) {
             created_at: new Date().toISOString()
           }, {
             onConflict: 'patient_id,agency_id'
-          });
+          })
+          .select('id')
+          .single();
 
         if (upsertError) {
           console.error('Error storing match:', upsertError);
           continue; // Skip this match but continue with others
+        }
+
+        // Create/Get chat channel via Stream SDK and persist channel id
+        try {
+          const careMatchId = upserted?.id;
+          if (careMatchId) {
+            // Skip if a channel already exists for this match
+            const { data: existing } = await supabase
+              .from('chat_channels')
+              .select('stream_channel_id')
+              .eq('care_match_id', careMatchId)
+              .single();
+
+            if (!existing) {
+              const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY;
+              const apiSecret = process.env.STREAM_API_SECRET;
+              if (!apiKey || !apiSecret) {
+                console.warn('Stream credentials missing, skipping channel creation');
+              } else {
+                const streamClient = StreamChat.getInstance(apiKey, apiSecret);
+                const familyUserId = (Array.isArray((patient as any).families) ? (patient as any).families[0]?.user_id : (patient as any).families?.user_id) || user.id;
+                const familyName = patient?.full_name || 'Family';
+
+                // ensure family user exists in Stream
+                await streamClient.upsertUser({ id: `family_${familyUserId}`, name: familyName, role: 'family' });
+
+                // Build deterministic channel id
+                const channelId = `ag_${String(match.agencyId).slice(-8)}_fam_${String(familyUserId).slice(-8)}`;
+
+                const channel = streamClient.channel('messaging', channelId, {
+                  name: `Chat with ${familyName}`,
+                  members: [`agency_${match.agencyId}`, `family_${familyUserId}`],
+                  agency_initiated: true,
+                } as any);
+
+                try {
+                  await channel.create();
+                } catch (err) {
+                  // If already exists, proceed
+                  // console.warn('Channel create error (may already exist):', err);
+                }
+
+                // Store chat channel and link to care_matches
+                const { error: insertErr } = await supabase
+                  .from('chat_channels')
+                  .insert({
+                    care_match_id: careMatchId,
+                    stream_channel_id: channelId,
+                    agency_id: match.agencyId,
+                    family_user_id: familyUserId,
+                    channel_name: `Chat with ${familyName}`,
+                    agency_initiated: true,
+                  });
+
+                if (insertErr) {
+                  console.warn('Failed to insert chat_channels row:', insertErr);
+                }
+
+                await supabase
+                  .from('care_matches')
+                  .update({ channel: channelId })
+                  .eq('id', careMatchId);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Error creating chat channel for match (SDK):', e);
         }
         matchesCreated++;
       }

@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useOnboarding } from "./PatientOnboardingWizard";
-import { LoadingButton } from "@/components/ui/loading-button";
 import { CheckCircle, User, Heart, Calendar, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 
@@ -178,22 +177,36 @@ export default function Step7Review() {
           </div>
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between pt-6">
+          <div className="flex flex-col items-center space-y-4 pt-6">
             <Button
-              variant="outline"
-              onClick={goToPreviousStep}
-              className="border-gray-300"
-            >
-              Previous
-            </Button>
-            <LoadingButton
               onClick={handleSubmit}
-              loading={submitting}
-              loadingText="Completing..."
-              className="bg-green-600 hover:bg-green-700 text-white"
+              disabled={submitting}
+              className="text-white font-medium flex items-center justify-center hover:opacity-90"
+              style={{ 
+                backgroundColor: '#71A37A',
+                width: '358px',
+                height: '54px',
+                borderRadius: '8px',
+                padding: '16px'
+              }}
             >
-              Complete Onboarding
-            </LoadingButton>
+              {submitting ? 'Completing...' : 'Complete Onboarding'}
+            </Button>
+            <Button
+              type="button"
+              className="text-white font-medium flex items-center justify-center hover:opacity-90"
+              style={{ 
+                backgroundColor: '#ffffff',
+                color: '#000000',
+                width: '358px',
+                height: '54px',
+                borderRadius: '8px',
+                padding: '16px'
+              }}
+              onClick={goToPreviousStep}
+            >
+              CANCEL
+            </Button>
           </div>
         </div>
       </CardContent>

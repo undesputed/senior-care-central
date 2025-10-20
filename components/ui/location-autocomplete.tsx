@@ -14,6 +14,7 @@ interface LocationAutocompleteProps {
   className?: string;
   id?: string;
   disabled?: boolean;
+  style?: React.CSSProperties;
 }
 
 // Declare global google namespace for TypeScript
@@ -109,7 +110,7 @@ const US_CITIES = [
 ];
 
 const LocationAutocomplete = forwardRef<HTMLInputElement, LocationAutocompleteProps>(
-  ({ value, onChange, onError, placeholder = "City, State or ZIP code", className, id, disabled }, ref) => {
+  ({ value, onChange, onError, placeholder = "City, State or ZIP code", className, id, disabled, style }, ref) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -192,7 +193,6 @@ const LocationAutocomplete = forwardRef<HTMLInputElement, LocationAutocompletePr
     return (
       <div className="relative">
         <div className="relative">
-          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             ref={ref || inputRef}
             id={id}
@@ -203,6 +203,7 @@ const LocationAutocomplete = forwardRef<HTMLInputElement, LocationAutocompletePr
             onBlur={handleInputBlur}
             placeholder={placeholder}
             className={`pl-10 ${className || ""}`}
+            style={style}
             disabled={disabled}
             autoComplete="off"
           />
@@ -231,10 +232,6 @@ const LocationAutocomplete = forwardRef<HTMLInputElement, LocationAutocompletePr
             ))}
           </div>
         )}
-        
-        <p className="text-xs text-gray-500 mt-1">
-          {useGoogleAPI ? "Type to search for US cities and states" : "Type to search from 500+ US cities"}
-        </p>
       </div>
     );
   }
