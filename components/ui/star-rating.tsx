@@ -46,8 +46,8 @@ export function StarRating({
               className={cn(
                 sizeClasses[size],
                 isFilled 
-                  ? "fill-yellow-400 text-yellow-400" 
-                  : "text-gray-300 hover:text-yellow-300"
+                  ? "fill-[#71A37A] text-[#71A37A]" 
+                  : "text-gray-300 hover:text-[#71A37A]"
               )}
             />
           </button>

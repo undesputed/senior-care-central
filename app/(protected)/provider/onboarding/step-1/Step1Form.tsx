@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -8,11 +8,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import Link from "next/link";
-import { Upload, X, Image } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { LoadingButton } from "@/components/ui/loading-button";
+import Image from "next/image";
 
 const currentYear = new Date().getFullYear();
 
@@ -48,7 +47,6 @@ type FormValues = z.infer<typeof schema>;
 export default function Step1Form({ email }: { email: string | null }) {
   const supabase = createClient();
   const router = useRouter();
-  const [initializing, setInitializing] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>("");
@@ -56,7 +54,6 @@ export default function Step1Form({ email }: { email: string | null }) {
 
   const {
     register,
-    handleSubmit,
     setValue,
     formState: { errors, isValid },
     watch,
@@ -106,7 +103,6 @@ export default function Step1Form({ email }: { email: string | null }) {
         );
         setValue("coverage_radius_km", data.coverage_radius_km ? String(data.coverage_radius_km) : "");
       }
-      setInitializing(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -157,20 +153,14 @@ export default function Step1Form({ email }: { email: string | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watched.business_name, watched.business_registration_number, watched.year_established, watched.website, watched.phone, watched.admin_contact_name, watched.cities, watched.postal_codes, watched.coverage_radius_km]);
 
-  const onNext = async () => {
-    const parse = await schema.safeParseAsync(watched);
-    if (!parse.success) {
-      toast.error("Please fix errors before continuing");
-      return;
-    }
-    // Final synchronous save then navigate
-    setSaving(true);
+  const saveFormData = async () => {
     const citiesArray = watched.cities.split(",").map((s) => s.trim()).filter(Boolean);
     const postalArray = watched.postal_codes.split(",").map((s) => s.trim()).filter(Boolean);
     const year = watched.year_established ? Number(watched.year_established) : null;
     const radius = watched.coverage_radius_km ? Number(watched.coverage_radius_km) : null;
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); return; }
+    if (!user) return false;
+    
     const { error } = await supabase
       .from("agencies")
       .update({
@@ -187,12 +177,37 @@ export default function Step1Form({ email }: { email: string | null }) {
         email: email ?? null,
       })
       .eq("owner_id", user.id);
-    setSaving(false);
+    
     if (error) {
       toast.error("Save failed", { description: error.message });
+      return false;
+    }
+    return true;
+  };
+
+  const onNext = async () => {
+    const parse = await schema.safeParseAsync(watched);
+    if (!parse.success) {
+      toast.error("Please fix errors before continuing");
       return;
     }
-    router.push("/provider/onboarding/step-2");
+    // Final synchronous save then navigate
+    setSaving(true);
+    const success = await saveFormData();
+    setSaving(false);
+    if (success) {
+      router.push("/provider/onboarding/step-2");
+    }
+  };
+
+  const onSaveAndExit = async () => {
+    setSaving(true);
+    const success = await saveFormData();
+    setSaving(false);
+    if (success) {
+      toast.success("Progress saved successfully");
+      router.push("/provider/dashboard");
+    }
   };
 
   const handleLogoUpload = async (file: File) => {
@@ -254,8 +269,9 @@ export default function Step1Form({ email }: { email: string | null }) {
 
       setLogoUrl(publicUrl);
       toast.success("Logo uploaded successfully");
-    } catch (error: any) {
-      toast.error("Upload failed", { description: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      toast.error("Upload failed", { description: errorMessage });
     } finally {
       setUploading(false);
     }
@@ -278,8 +294,9 @@ export default function Step1Form({ email }: { email: string | null }) {
 
       setLogoUrl("");
       toast.success("Logo removed");
-    } catch (error: any) {
-      toast.error("Failed to remove logo", { description: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to remove logo';
+      toast.error("Failed to remove logo", { description: errorMessage });
     } finally {
       setUploading(false);
     }
@@ -287,41 +304,90 @@ export default function Step1Form({ email }: { email: string | null }) {
 
   return (
     <div className="space-y-4">
-      <div className="text-sm text-muted-foreground">{saving ? "Saving..." : initializing ? "Loading..." : "All changes autosaved"}</div>
-
-      <div className="grid gap-4">
-        <div className="space-y-2">
+      <div className="flex flex-col items-center gap-4">
+        <div className="space-y-2" style={{ width: '358px' }}>
           <Label htmlFor="business_name">Business Name <span className="text-red-500">*</span></Label>
-          <Input id="business_name" placeholder="Acme Senior Care" {...register("business_name")} aria-invalid={!!errors.business_name} />
+          <Input 
+            id="business_name" 
+            placeholder="Acme Senior Care" 
+            {...register("business_name")} 
+            aria-invalid={!!errors.business_name}
+            style={{
+              width: '358px',
+              height: '54px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid #E8E8E8'
+            }}
+          />
           {errors.business_name && <p className="text-sm text-red-600" role="alert">{errors.business_name.message}</p>}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" style={{ width: '358px' }}>
           <Label htmlFor="business_registration_number">Business Registration Number</Label>
-          <Input id="business_registration_number" placeholder="123456" {...register("business_registration_number")} aria-invalid={!!errors.business_registration_number} />
+          <Input 
+            id="business_registration_number" 
+            placeholder="123456" 
+            {...register("business_registration_number")} 
+            aria-invalid={!!errors.business_registration_number}
+            style={{
+              width: '358px',
+              height: '54px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid #E8E8E8'
+            }}
+          />
           {errors.business_registration_number && <p className="text-sm text-red-600" role="alert">{errors.business_registration_number.message}</p>}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" style={{ width: '358px' }}>
           <Label htmlFor="year_established">Year Established</Label>
-          <Input id="year_established" inputMode="numeric" placeholder="2005" {...register("year_established")} aria-invalid={!!errors.year_established} />
+          <Input 
+            id="year_established" 
+            inputMode="numeric" 
+            placeholder="2005" 
+            {...register("year_established")} 
+            aria-invalid={!!errors.year_established}
+            style={{
+              width: '358px',
+              height: '54px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid #E8E8E8'
+            }}
+          />
           {errors.year_established && <p className="text-sm text-red-600" role="alert">{errors.year_established.message}</p>}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" style={{ width: '358px' }}>
           <Label htmlFor="website">Website</Label>
-          <Input id="website" placeholder="https://example.com" {...register("website")} aria-invalid={!!errors.website} />
+          <Input 
+            id="website" 
+            placeholder="https://example.com" 
+            {...register("website")} 
+            aria-invalid={!!errors.website}
+            style={{
+              width: '358px',
+              height: '54px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid #E8E8E8'
+            }}
+          />
           {errors.website && <p className="text-sm text-red-600" role="alert">{errors.website.message}</p>}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" style={{ width: '358px' }}>
           <Label>Business Logo</Label>
           {logoUrl ? (
-            <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
-              <img 
+            <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50" style={{ width: '358px', height: '54px', borderRadius: '8px', border: '1px solid #E8E8E8' }}>
+              <Image 
                 src={logoUrl} 
                 alt="Business logo" 
-                className="w-16 h-16 object-cover rounded border"
+                width={64}
+                height={64}
+                className="object-cover rounded border"
               />
               <div className="flex-1">
                 <p className="text-sm text-gray-600">Logo uploaded</p>
@@ -363,7 +429,7 @@ export default function Step1Form({ email }: { email: string | null }) {
               </div>
             </div>
           ) : (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors" style={{ width: '358px', height: '54px', borderRadius: '8px', border: '1px solid #E8E8E8' }}>
               <Input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -393,53 +459,150 @@ export default function Step1Form({ email }: { email: string | null }) {
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" style={{ width: '358px' }}>
           <Label htmlFor="phone">Phone Number <span className="text-red-500">*</span></Label>
-          <Input id="phone" placeholder="(555) 123-4567" {...register("phone")} aria-invalid={!!errors.phone} />
+          <Input 
+            id="phone" 
+            placeholder="(555) 123-4567" 
+            {...register("phone")} 
+            aria-invalid={!!errors.phone}
+            style={{
+              width: '358px',
+              height: '54px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid #E8E8E8'
+            }}
+          />
           {errors.phone && <p className="text-sm text-red-600" role="alert">{errors.phone.message}</p>}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" style={{ width: '358px' }}>
           <Label htmlFor="email">Email</Label>
-          <Input id="email" value={email ?? ""} disabled />
+          <Input 
+            id="email" 
+            value={email ?? ""} 
+            disabled
+            style={{
+              width: '358px',
+              height: '54px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid #E8E8E8'
+            }}
+          />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" style={{ width: '358px' }}>
           <Label htmlFor="admin_contact_name">Admin Contact Name <span className="text-red-500">*</span></Label>
-          <Input id="admin_contact_name" placeholder="Jane Doe" {...register("admin_contact_name")} aria-invalid={!!errors.admin_contact_name} />
+          <Input 
+            id="admin_contact_name" 
+            placeholder="Jane Doe" 
+            {...register("admin_contact_name")} 
+            aria-invalid={!!errors.admin_contact_name}
+            style={{
+              width: '358px',
+              height: '54px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid #E8E8E8'
+            }}
+          />
           {errors.admin_contact_name && <p className="text-sm text-red-600" role="alert">{errors.admin_contact_name.message}</p>}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" style={{ width: '358px' }}>
           <Label htmlFor="cities">City / Cities of Service (comma separated) <span className="text-red-500">*</span></Label>
-          <Input id="cities" placeholder="San Jose, Palo Alto" {...register("cities")} aria-invalid={!!errors.cities} />
+          <Input 
+            id="cities" 
+            placeholder="San Jose, Palo Alto" 
+            {...register("cities")} 
+            aria-invalid={!!errors.cities}
+            style={{
+              width: '358px',
+              height: '54px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid #E8E8E8'
+            }}
+          />
           {errors.cities && <p className="text-sm text-red-600" role="alert">{errors.cities.message}</p>}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" style={{ width: '358px' }}>
           <Label htmlFor="postal_codes">Postal Code(s) or Coverage Radius (comma separated for codes) <span className="text-red-500">*</span></Label>
-          <Input id="postal_codes" placeholder="95112, 95113" {...register("postal_codes")} aria-invalid={!!errors.postal_codes} />
+          <Input 
+            id="postal_codes" 
+            placeholder="95112, 95113" 
+            {...register("postal_codes")} 
+            aria-invalid={!!errors.postal_codes}
+            style={{
+              width: '358px',
+              height: '54px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid #E8E8E8'
+            }}
+          />
           {errors.postal_codes && <p className="text-sm text-red-600" role="alert">{errors.postal_codes.message}</p>}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2" style={{ width: '358px' }}>
           <Label htmlFor="coverage_radius_km">Coverage Radius (km)</Label>
-          <Input id="coverage_radius_km" inputMode="numeric" placeholder="25" {...register("coverage_radius_km")} aria-invalid={!!errors.coverage_radius_km} />
+          <Input 
+            id="coverage_radius_km" 
+            inputMode="numeric" 
+            placeholder="25" 
+            {...register("coverage_radius_km")} 
+            aria-invalid={!!errors.coverage_radius_km}
+            style={{
+              width: '358px',
+              height: '54px',
+              borderRadius: '8px',
+              padding: '16px',
+              border: '1px solid #E8E8E8'
+            }}
+          />
           {errors.coverage_radius_km && <p className="text-sm text-red-600" role="alert">{errors.coverage_radius_km.message}</p>}
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <Link href="/provider/dashboard" className="underline">Save & Exit</Link>
-        <LoadingButton
-          loading={saving}
-          loadingText="Saving..."
+      <div className="flex flex-col items-center space-y-4 pt-6">
+        <button
+          type="button"
           onClick={onNext}
-          disabled={!isValid}
-          className="bg-green-600 hover:bg-green-700"
+          disabled={saving}
+          className="text-white font-medium flex items-center justify-center hover:opacity-90 disabled:opacity-50"
+          style={{ 
+            backgroundColor: '#71A37A',
+            width: '358px',
+            height: '54px',
+            borderRadius: '8px',
+            padding: '16px',
+            cursor: 'pointer'
+          }}
         >
-          Next
-        </LoadingButton>
+          {saving ? 'Saving...' : 'NEXT →'}
+        </button>
+        <button
+          type="button"
+          onClick={onSaveAndExit}
+          disabled={saving}
+          className="text-white font-medium flex items-center justify-center hover:opacity-90 disabled:opacity-50"
+          style={{ 
+            backgroundColor: '#ffffff',
+            color: '#000000',
+            width: '358px',
+            height: '54px',
+            borderRadius: '8px',
+            padding: '16px',
+            border: '1px solid #E8E8E8',
+            cursor: 'pointer'
+
+          }}
+        >
+          {saving ? 'Saving...' : 'Save and Exit'}
+        </button>
       </div>
     </div>
   );

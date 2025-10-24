@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import ProviderMessagesClient from "./ProviderMessagesClient";
 
 export default async function MessagesPage() {
   const supabase = await createClient();
@@ -22,13 +23,7 @@ export default async function MessagesPage() {
 
   return (
     <DashboardLayout title="Messages">
-      <div className="p-6">
-        <div className="text-center text-gray-500">
-          <h3 className="text-lg font-medium mb-2">Messages</h3>
-          <p>Messaging features will be implemented here.</p>
-          <p className="text-sm mt-2">This will include communication with clients and families.</p>
-        </div>
-      </div>
+      <ProviderMessagesClient />
     </DashboardLayout>
   );
 }

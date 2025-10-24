@@ -3,9 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import Link from "next/link";
 
 interface ServiceRow { id: string; slug: string; name: string }
 
@@ -42,7 +40,7 @@ export default function ServicesForm() {
       if (svc) setServices(svc);
       if (existing) {
         const map: Record<string, boolean> = {};
-        existing.forEach((row: any) => { map[row.service_id] = true; });
+        existing.forEach((row: { service_id: string }) => { map[row.service_id] = true; });
         setSelected(map);
       }
       setLoading(false);
@@ -92,18 +90,67 @@ export default function ServicesForm() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3">
-        {services.map((s) => (
-          <label key={s.id} className="flex items-center gap-3">
-            <Checkbox id={s.slug} checked={!!selected[s.id]} onCheckedChange={(v) => toggle(s.id, Boolean(v))} />
-            <span>{s.name} <span className="text-red-500">*</span></span>
-          </label>
-        ))}
+      <div className="flex flex-col items-center gap-4">
+        <div className="space-y-2" style={{ width: '358px' }}>
+          <p className="text-sm text-muted-foreground">Agency selects the types of care they provide.</p>
+        </div>
+        <div className="grid gap-3" style={{ width: '358px' }}>
+          {services.map((s) => (
+            <label key={s.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors" style={{ borderRadius: '8px' }}>
+              <Checkbox 
+                id={s.slug} 
+                checked={!!selected[s.id]} 
+                onCheckedChange={(v) => toggle(s.id, Boolean(v))}
+                className="data-[state=checked]:bg-[#71A37A] data-[state=checked]:border-[#71A37A]"
+              />
+              <span className="text-sm">{s.name}</span>
+            </label>
+          ))}
+        </div>
       </div>
-      <p className="text-sm text-muted-foreground">* Select at least one service</p>
-      <div className="flex items-center justify-between">
-        <Link href="/provider/onboarding/step-1" className="underline">Back</Link>
-        <Button onClick={onSaveNext} disabled={saving} className="bg-green-600 hover:bg-green-700">Next</Button>
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        className="w-full my-4"
+        style={{
+          borderBottom: '1px solid #E8E8E8',
+          width: '358px',
+          margin: '0 auto'
+        }}
+      ></div>
+      <div className="flex flex-col items-center space-y-4 pt-6">
+        <button
+          type="button"
+          onClick={onSaveNext}
+          disabled={saving || selectedIds.length === 0}
+          className="text-white font-medium flex items-center justify-center hover:opacity-90 disabled:opacity-50"
+          style={{ 
+            backgroundColor: '#71A37A',
+            width: '358px',
+            height: '54px',
+            borderRadius: '8px',
+            padding: '16px'
+          }}
+        >
+          {saving ? 'Saving...' : 'NEXT →'}
+        </button>
+        <button
+          type="button"
+          onClick={() => window.location.href = '/provider/onboarding/step-1'}
+          disabled={saving}
+          className="text-white font-medium flex items-center justify-center hover:opacity-90 disabled:opacity-50"
+          style={{ 
+            backgroundColor: '#ffffff',
+            color: '#000000',
+            width: '358px',
+            height: '54px',
+            borderRadius: '8px',
+            padding: '16px',
+            border: '1px solid #E8E8E8'
+          }}
+        >
+          BACK
+        </button>
       </div>
     </div>
   );

@@ -2,14 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import Link from "next/link";
-import { Upload, FileText, Image, X, CheckCircle } from "lucide-react";
+import { FileText, Image as ImageIcon, CheckCircle } from "lucide-react";
 
 interface UploadedFile {
   id: string;
@@ -32,14 +28,8 @@ export default function UploadsForm() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Document files
-  const [registrationFile, setRegistrationFile] = useState<FileWithPreview | null>(null);
-  const [backgroundCheckFile, setBackgroundCheckFile] = useState<FileWithPreview | null>(null);
-  const [trainingFile, setTrainingFile] = useState<FileWithPreview | null>(null);
-  
   // Photo files
   const [photoFiles, setPhotoFiles] = useState<FileWithPreview[]>([]);
-  const [photoCategories, setPhotoCategories] = useState<Record<string, string>>({});
 
   useEffect(() => {
     (async () => {
@@ -133,10 +123,7 @@ export default function UploadsForm() {
       await uploadFile(file, type);
       toast.success(`${type.replace('_', ' ')} uploaded successfully`);
       
-      // Update state
-      if (type === 'registration') setRegistrationFile(file);
-      else if (type === 'background_check') setBackgroundCheckFile(file);
-      else if (type === 'training') setTrainingFile(file);
+      // File uploaded successfully
       
       // Reload uploads
       const { data: uploads } = await supabase
@@ -145,8 +132,9 @@ export default function UploadsForm() {
         .eq('agency_id', agencyId);
       
       if (uploads) setUploadedFiles(uploads);
-    } catch (error: any) {
-      toast.error("Upload failed", { description: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      toast.error("Upload failed", { description: errorMessage });
     } finally {
       setUploading(false);
     }
@@ -181,8 +169,9 @@ export default function UploadsForm() {
         .eq('agency_id', agencyId);
       
       if (uploads) setUploadedFiles(uploads);
-    } catch (error: any) {
-      toast.error("Upload failed", { description: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      toast.error("Upload failed", { description: errorMessage });
     } finally {
       setUploading(false);
     }
@@ -198,10 +187,88 @@ export default function UploadsForm() {
         return;
       }
       
-      toast.success("Uploads saved successfully");
+      // Analyze onboarding completion status
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("User not found");
+        return;
+      }
+
+      // Get agency data
+      const { data: agency } = await supabase
+        .from('agencies')
+        .select('id, business_name, phone, admin_contact_name, cities, postal_codes, onboarding_completed')
+        .eq('owner_id', user.id)
+        .single();
+
+      if (!agency) {
+        toast.error("Agency not found");
+        return;
+      }
+
+      // Check if all required onboarding steps are completed
+      const hasBasicInfo = agency.business_name && 
+                          agency.phone && 
+                          agency.admin_contact_name && 
+                          agency.cities && 
+                          agency.cities.length > 0 && 
+                          agency.postal_codes && 
+                          agency.postal_codes.length > 0;
+
+      // Check services (Step 2)
+      const { data: services } = await supabase
+        .from('agency_services')
+        .select('service_id')
+        .eq('agency_id', agency.id)
+        .limit(1);
+
+      // Check star points (Step 3)
+      const { data: strengths } = await supabase
+        .from('agency_service_strengths')
+        .select('points')
+        .eq('agency_id', agency.id)
+        .limit(1);
+
+      // Check rates (Step 4)
+      const { data: rates } = await supabase
+        .from('agency_service_rates')
+        .select('service_id')
+        .eq('agency_id', agency.id)
+        .limit(1);
+
+      // Determine if onboarding is complete
+      const isOnboardingComplete = hasBasicInfo && 
+                                   services && services.length > 0 && 
+                                   strengths && strengths.length > 0 && 
+                                   rates && rates.length > 0 && 
+                                   hasDocuments;
+
+      // Update agency status based on completion
+      const newStatus = isOnboardingComplete ? 'completed' : 'draft';
+      const onboardingCompleted = isOnboardingComplete;
+
+      const { error: updateError } = await supabase
+        .from('agencies')
+        .update({ 
+          status: newStatus,
+          onboarding_completed: onboardingCompleted
+        })
+        .eq('id', agency.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      if (isOnboardingComplete) {
+        toast.success("Onboarding completed successfully! Your agency is now ready.");
+      } else {
+        toast.success("Progress saved. Please complete all steps to finish onboarding.");
+      }
+      
       window.location.href = '/provider/dashboard';
-    } catch (error: any) {
-      toast.error("Save failed", { description: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Save failed';
+      toast.error("Save failed", { description: errorMessage });
     } finally {
       setSaving(false);
     }
@@ -212,93 +279,112 @@ export default function UploadsForm() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Documents Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+    <div className="space-y-4">
+      <div className="flex flex-col items-center gap-4">
+        {/* Documents Section */}
+        <div className="p-4 rounded-lg border" style={{ width: '358px', border: '1px solid #E8E8E8', borderRadius: '8px' }}>
+          <div className="flex items-center gap-2 mb-4">
             <FileText className="h-5 w-5" />
-            Upload Documents
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Registration Document */}
-          <div className="space-y-2">
-            <Label htmlFor="registration">
-              Govt Business Registration (PDF or photo) <span className="text-red-500">*</span>
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="registration"
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleDocumentUpload(file, 'registration');
-                }}
-                disabled={uploading}
-              />
-              {getUploadedCount('registration') > 0 && (
-                <CheckCircle className="h-5 w-5 text-green-500" />
-              )}
+            <h3 className="text-lg font-medium">Upload Documents</h3>
+          </div>
+          
+          <div className="space-y-4">
+            {/* Registration Document */}
+            <div className="space-y-2">
+              <Label htmlFor="registration">
+                Govt Business Registration (PDF or photo) <span className="text-red-500">*</span>
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="registration"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleDocumentUpload(file, 'registration');
+                  }}
+                  disabled={uploading}
+                  style={{
+                    width: '100%',
+                    height: '54px',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    border: '1px solid #E8E8E8'
+                  }}
+                />
+                {getUploadedCount('registration') > 0 && (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                )}
+              </div>
+            </div>
+
+            {/* Background Check Document */}
+            <div className="space-y-2">
+              <Label htmlFor="background-check">
+                Staff Background Check Certification
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="background-check"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleDocumentUpload(file, 'background_check');
+                  }}
+                  disabled={uploading}
+                  style={{
+                    width: '100%',
+                    height: '54px',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    border: '1px solid #E8E8E8'
+                  }}
+                />
+                {getUploadedCount('background_check') > 0 && (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                )}
+              </div>
+            </div>
+
+            {/* Training Document */}
+            <div className="space-y-2">
+              <Label htmlFor="training">
+                Any training/accreditation documents
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="training"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleDocumentUpload(file, 'training');
+                  }}
+                  disabled={uploading}
+                  style={{
+                    width: '100%',
+                    height: '54px',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    border: '1px solid #E8E8E8'
+                  }}
+                />
+                {getUploadedCount('training') > 0 && (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                )}
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Background Check Document */}
-          <div className="space-y-2">
-            <Label htmlFor="background-check">
-              Staff Background Check Certification
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="background-check"
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleDocumentUpload(file, 'background_check');
-                }}
-                disabled={uploading}
-              />
-              {getUploadedCount('background_check') > 0 && (
-                <CheckCircle className="h-5 w-5 text-green-500" />
-              )}
-            </div>
+        {/* Photos Section */}
+        <div className="p-4 rounded-lg border" style={{ width: '358px', border: '1px solid #E8E8E8', borderRadius: '8px' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <ImageIcon className="h-5 w-5" />
+            <h3 className="text-lg font-medium">Photos</h3>
           </div>
-
-          {/* Training Document */}
-          <div className="space-y-2">
-            <Label htmlFor="training">
-              Any training/accreditation documents
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="training"
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleDocumentUpload(file, 'training');
-                }}
-                disabled={uploading}
-              />
-              {getUploadedCount('training') > 0 && (
-                <CheckCircle className="h-5 w-5 text-green-500" />
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Photos Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Image className="h-5 w-5" />
-            Photos
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          
           <div className="space-y-2">
             <Label htmlFor="photos">
               Select up to 10 pictures max
@@ -313,6 +399,13 @@ export default function UploadsForm() {
                 if (files) handlePhotoUpload(files);
               }}
               disabled={uploading}
+              style={{
+                width: '100%',
+                height: '54px',
+                borderRadius: '8px',
+                padding: '16px',
+                border: '1px solid #E8E8E8'
+              }}
             />
             <p className="text-sm text-muted-foreground">
               Categories: Care team, Facilities (if any), Clients (with permission)
@@ -323,47 +416,80 @@ export default function UploadsForm() {
               </p>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Uploaded Files Summary */}
-      {uploadedFiles.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Uploaded Files</CardTitle>
-          </CardHeader>
-          <CardContent>
+        {/* Uploaded Files Summary */}
+        {uploadedFiles.length > 0 && (
+          <div className="p-4 rounded-lg border" style={{ width: '358px', border: '1px solid #E8E8E8', borderRadius: '8px' }}>
+            <h3 className="text-lg font-medium mb-4">Uploaded Files</h3>
             <div className="space-y-2">
               {uploadedFiles.map((file) => (
                 <div key={file.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    <span className="text-sm">{file.file_name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      ({Math.round(file.file_size / 1024)}KB)
-                    </span>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <FileText className="h-4 w-4 flex-shrink-0" />
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-sm truncate" title={file.file_name}>
+                        {file.file_name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {Math.round(file.file_size / 1024)}KB
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded flex-shrink-0 ml-2">
                     {file.file_type.replace('_', ' ')}
                   </span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
+      </div>
 
-      <div className="flex items-center justify-between pt-4">
-        <Link href="/provider/onboarding/step-4" className="underline text-gray-600 hover:text-gray-800">
-          ← Back
-        </Link>
-        <Button 
-          onClick={onSaveNext} 
-          disabled={saving || uploading} 
-          className="bg-green-600 hover:bg-green-700 px-6"
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        className="w-full my-4"
+        style={{
+          borderBottom: '1px solid #E8E8E8',
+          width: '358px',
+          margin: '0 auto'
+        }}
+      ></div>
+
+      <div className="flex flex-col items-center space-y-4 pt-6">
+        <button
+          type="button"
+          onClick={onSaveNext}
+          disabled={saving || uploading}
+          className="text-white font-medium flex items-center justify-center hover:opacity-90 disabled:opacity-50"
+          style={{ 
+            backgroundColor: '#71A37A',
+            width: '358px',
+            height: '54px',
+            borderRadius: '8px',
+            padding: '16px'
+          }}
         >
-          {saving ? "Saving..." : "Next →"}
-        </Button>
+          {saving ? 'Saving...' : 'NEXT →'}
+        </button>
+        <button
+          type="button"
+          onClick={() => window.location.href = '/provider/onboarding/step-4'}
+          disabled={saving || uploading}
+          className="text-white font-medium flex items-center justify-center hover:opacity-90 disabled:opacity-50"
+          style={{ 
+            backgroundColor: '#ffffff',
+            color: '#000000',
+            width: '358px',
+            height: '54px',
+            borderRadius: '8px',
+            padding: '16px',
+            border: '1px solid #E8E8E8'
+          }}
+        >
+          BACK
+        </button>
       </div>
     </div>
   );

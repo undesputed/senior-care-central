@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import RatesForm from "./RatesForm";
 import OnboardingStepper from "@/components/onboarding/OnboardingStepper";
 
@@ -10,18 +9,15 @@ export default async function OnboardingStep4Page() {
   if (!user) redirect("/provider/login");
 
   return (
-    <div className="min-h-[100dvh] px-4 py-8" style={{ backgroundColor: "#c2dacc" }}>
+    <div className="min-h-[100dvh] px-4 py-8" style={{ backgroundColor: "#ffffff" }}>
       <div className="mx-auto max-w-3xl">
-        <Card className="rounded-2xl border-0 shadow-lg" style={{ backgroundColor: "#ffffff" }}>
-          <CardHeader>
-            <CardTitle>Onboarding – Set Your Rates</CardTitle>
-            <CardDescription>Provide min and max rates for each selected service.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <OnboardingStepper />
-            <RatesForm />
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <div className="w-full flex justify-center">
+            <h1 className="text-2xl font-bold text-center">Agency Onboarding</h1>
+          </div>
+          <OnboardingStepper />
+          <RatesForm />
+        </div>
       </div>
     </div>
   );
