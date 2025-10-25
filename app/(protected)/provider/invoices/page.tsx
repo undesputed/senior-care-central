@@ -1,30 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import ProviderInvoicesClient from "./ProviderInvoicesClient";
+import { redirect } from "next/navigation";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default async function ProviderInvoicesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
-  const { data: agency } = await supabase
-    .from('agencies')
-    .select('id, business_name')
-    .eq('owner_id', user?.id)
-    .single();
-
-  return (
-    <ProviderInvoicesClient agencyId={agency?.id || ''} />
-  );
-}
-
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-
-export default async function InvoicesPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   if (!user) {
     redirect("/provider/login");
@@ -37,6 +17,12 @@ export default async function InvoicesPage() {
   if (!isComplete) {
     redirect(nextStep || "/provider/onboarding/step-1")
   }
+
+  const { data: agency } = await supabase
+    .from('agencies')
+    .select('id, business_name')
+    .eq('owner_id', user.id)
+    .single();
 
   return (
     <DashboardLayout title="Invoices">
