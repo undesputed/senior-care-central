@@ -14,17 +14,125 @@ function AuthCallbackContent() {
 
   useEffect(() => {
     (async () => {
-      // Exchange the auth code from the email link for a session
+      // Check for error parameters in URL first
+      const urlParams = new URLSearchParams(window.location.search);
+      const error = urlParams.get('error');
+      const errorCode = urlParams.get('error_code');
+      const errorDescription = urlParams.get('error_description');
+      const type = urlParams.get('type');
+      
+      // Debug logging
+      console.log('Auth callback URL:', window.location.href);
+      console.log('URL params:', Object.fromEntries(urlParams.entries()));
+      console.log('Search params:', Object.fromEntries(params.entries()));
+      
+      if (error === 'access_denied' && errorCode === 'otp_expired') {
+        setStatus('This password reset link has expired. Password reset links are only valid for 1 hour. Please request a new one.');
+        toast.error('Password reset link expired');
+        setTimeout(() => {
+          const role = params.get('role');
+          
+          // Check the redirect_to URL to determine the role if not explicitly provided
+          const redirectTo = urlParams.get('redirect_to') || '';
+          let determinedRole = role;
+          
+          if (!determinedRole) {
+            if (redirectTo.includes('/family/')) {
+              determinedRole = 'family';
+            } else if (redirectTo.includes('/provider/')) {
+              determinedRole = 'provider';
+            } else {
+              // Default to provider if we can't determine
+              determinedRole = 'provider';
+            }
+          }
+          
+          router.replace(determinedRole === 'family' ? '/family/reset-password' : '/provider/reset-password');
+        }, 3000);
+        return;
+      }
+      
+      // Handle password reset or email confirmation
       try {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
+        console.log('Processing auth callback...');
+        console.log('Full URL:', window.location.href);
+        
+        // Get additional URL parameters
+        const token = urlParams.get('token');
+        const code = urlParams.get('code');
+        
+        console.log('Token:', token);
+        console.log('Code:', code);
+        console.log('Type:', type);
+        
+        let exchangeResult;
+        
+        if (token && type === 'recovery') {
+          // This is a password reset flow - we need to handle it differently
+          console.log('Handling password reset flow...');
+          
+          // For password reset, we need to verify the token and create a session
+          // The token should be exchanged for a session using the token directly
+          const { data, error: tokenError } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: 'recovery'
+          });
+          
+          if (tokenError) {
+            console.error('Token verification error:', tokenError);
+            throw tokenError;
+          }
+          
+          console.log('Token verified successfully:', data);
+          exchangeResult = { error: null };
+        } else if (code) {
+          // This is an email confirmation flow
+          console.log('Handling email confirmation flow...');
+          exchangeResult = await supabase.auth.exchangeCodeForSession(window.location.href);
+        } else {
+          // Try the general exchange method as fallback
+          console.log('Trying general exchange method...');
+          exchangeResult = await supabase.auth.exchangeCodeForSession(window.location.href);
+        }
+        
+        const { error: exchangeError } = exchangeResult;
         if (exchangeError) {
+          console.error('Exchange error:', exchangeError);
+          console.error('Error message:', exchangeError.message);
+          console.error('Error code:', exchangeError.status);
+          
           // Handle specific error cases
-          if (exchangeError.message.includes('expired') || exchangeError.message.includes('invalid')) {
-            setStatus('This verification link has expired or is invalid. Please request a new one.');
-            toast.error('Verification link expired');
+          if (exchangeError.message.includes('expired') || 
+              exchangeError.message.includes('invalid') || 
+              exchangeError.message.includes('otp_expired') ||
+              exchangeError.message.includes('access_denied')) {
+            setStatus('This password reset link has expired. Password reset links are only valid for 1 hour. Please request a new one.');
+            toast.error('Password reset link expired');
             setTimeout(() => {
-              const role = params.get('role') || 'provider';
-              router.replace(role === 'family' ? '/family/login' : '/provider/login');
+              const role = params.get('role');
+              const type = params.get('type');
+              
+              // Check the redirect_to URL to determine the role if not explicitly provided
+              const redirectTo = urlParams.get('redirect_to') || '';
+              let determinedRole = role;
+              
+              if (!determinedRole) {
+                if (redirectTo.includes('/family/')) {
+                  determinedRole = 'family';
+                } else if (redirectTo.includes('/provider/')) {
+                  determinedRole = 'provider';
+                } else {
+                  // Default to provider if we can't determine
+                  determinedRole = 'provider';
+                }
+              }
+              
+              if (type === 'recovery') {
+                // Redirect to reset password page for expired recovery links
+                router.replace(determinedRole === 'family' ? '/family/reset-password' : '/provider/reset-password');
+              } else {
+                router.replace(determinedRole === 'family' ? '/family/login' : '/provider/login');
+              }
             }, 3000);
             return;
           }
@@ -33,6 +141,36 @@ function AuthCallbackContent() {
         
         // Small delay to ensure session is properly set in cookies
         await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Check if this is a password reset flow
+        // urlParams and type are already declared at the top of the function
+        
+        if (type === 'recovery') {
+          // This is a password reset flow
+          const role = params.get('role');
+          
+          // Check the redirect_to URL to determine the role if not explicitly provided
+          const redirectTo = urlParams.get('redirect_to') || '';
+          let determinedRole = role;
+          
+          if (!determinedRole) {
+            if (redirectTo.includes('/family/update-password')) {
+              determinedRole = 'family';
+            } else if (redirectTo.includes('/provider/update-password')) {
+              determinedRole = 'provider';
+            } else {
+              // Default to provider if we can't determine
+              determinedRole = 'provider';
+            }
+          }
+          
+          if (determinedRole === 'family') {
+            router.replace('/family/update-password');
+          } else {
+            router.replace('/provider/update-password');
+          }
+          return;
+        }
         
         // Get role from URL params or default to provider
         const role = params.get('role') || 'provider';
@@ -61,8 +199,24 @@ function AuthCallbackContent() {
         toast.error('Confirmation failed');
         
         // Redirect to appropriate login based on role
-        const role = params.get('role') || 'provider';
-        if (role === 'family') {
+        const role = params.get('role');
+        
+        // Check the redirect_to URL to determine the role if not explicitly provided
+        const redirectTo = urlParams.get('redirect_to') || '';
+        let determinedRole = role;
+        
+        if (!determinedRole) {
+          if (redirectTo.includes('/family/')) {
+            determinedRole = 'family';
+          } else if (redirectTo.includes('/provider/')) {
+            determinedRole = 'provider';
+          } else {
+            // Default to provider if we can't determine
+            determinedRole = 'provider';
+          }
+        }
+        
+        if (determinedRole === 'family') {
           router.replace('/family/login');
         } else {
           router.replace('/provider/login');

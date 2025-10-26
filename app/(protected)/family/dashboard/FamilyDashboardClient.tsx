@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, Filter, Heart, Star, Calendar, MessageCircle, MapPin, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 interface Agency {
   id: string;
@@ -23,91 +26,30 @@ interface Agency {
   specialties: string[];
   image: string;
   isFavorited: boolean;
+  description?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  permitVerified?: boolean;
+  cities?: string[];
+  coverageRadius?: number;
 }
 
-// Mock data for demonstration
-const agencies: Agency[] = [
-  {
-    id: "1",
-    name: "Concierge Care Advisors",
-    address: "2608 2nd Ave #224, Seattle, WA 98121, USA",
-    priceRange: "$800-1200/pm",
-    rating: 4.8,
-    reviewCount: 167,
-    matchPercentage: 92,
-    specialties: ["Memory Care", "Post-Surgery Recovery", "Dementia", "Stroke Recovery"],
-    image: "/api/placeholder/400/200",
-    isFavorited: false
-  },
-  {
-    id: "2",
-    name: "Concierge Care Advisors",
-    address: "2608 2nd Ave #224, Seattle, WA 98121, USA",
-    priceRange: "$800-1200/pm",
-    rating: 4.8,
-    reviewCount: 167,
-    matchPercentage: 92,
-    specialties: ["Memory Care", "Post-Surgery Recovery", "Dementia", "Stroke Recovery"],
-    image: "/api/placeholder/400/200",
-    isFavorited: false
-  },
-  {
-    id: "3",
-    name: "Concierge Care Advisors",
-    address: "2608 2nd Ave #224, Seattle, WA 98121, USA",
-    priceRange: "$800-1200/pm",
-    rating: 4.8,
-    reviewCount: 167,
-    matchPercentage: 92,
-    specialties: ["Memory Care", "Post-Surgery Recovery", "Dementia", "Stroke Recovery"],
-    image: "/api/placeholder/400/200",
-    isFavorited: false
-  },
-  {
-    id: "4",
-    name: "Concierge Care Advisors",
-    address: "2608 2nd Ave #224, Seattle, WA 98121, USA",
-    priceRange: "$800-1200/pm",
-    rating: 4.8,
-    reviewCount: 167,
-    matchPercentage: 92,
-    specialties: ["Memory Care", "Post-Surgery Recovery", "Dementia", "Stroke Recovery"],
-    image: "/api/placeholder/400/200",
-    isFavorited: false
-  },
-  {
-    id: "5",
-    name: "Concierge Care Advisors",
-    address: "2608 2nd Ave #224, Seattle, WA 98121, USA",
-    priceRange: "$800-1200/pm",
-    rating: 4.8,
-    reviewCount: 167,
-    matchPercentage: 92,
-    specialties: ["Memory Care", "Post-Surgery Recovery", "Dementia", "Stroke Recovery"],
-    image: "/api/placeholder/400/200",
-    isFavorited: false
-  },
-  {
-    id: "6",
-    name: "Concierge Care Advisors",
-    address: "2608 2nd Ave #224, Seattle, WA 98121, USA",
-    priceRange: "$800-1200/pm",
-    rating: 4.8,
-    reviewCount: 167,
-    matchPercentage: 92,
-    specialties: ["Memory Care", "Post-Surgery Recovery", "Dementia", "Stroke Recovery"],
-    image: "/api/placeholder/400/200",
-    isFavorited: false
-  }
-];
+// This will be replaced with real data from the API
 
 export default function FamilyDashboardClient() {
-  const [searchQuery, setSearchQuery] = useState("John Doe, 123456");
+  const router = useRouter();
+  const supabase = createClient();
+  const [searchQuery, setSearchQuery] = useState("");
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [inviteLoading, setInviteLoading] = useState<string | null>(null);
   
   // Filter states
-  const [location, setLocation] = useState("123456");
+  const [location, setLocation] = useState("");
   const [careTypes, setCareTypes] = useState({
     "In-Home Care": true,
     "Assisted Living": true,
@@ -123,6 +65,11 @@ export default function FamilyDashboardClient() {
     "No Preference": true
   });
   const [specialtyServices, setSpecialtyServices] = useState({
+    "24-Hour Care": true,
+    "Transfers": true,
+    "Transportation": true,
+    "Feeding": true,
+    "Anxiety Reduction": true,
     "Alzheimer's / Dementia Care": true,
     "Stroke Recovery": true,
     "Diabetes Management": true,
@@ -138,17 +85,215 @@ export default function FamilyDashboardClient() {
     "4 stars & up": true,
     "5 stars only": true
   });
-  const [verifiedOnly, setVerifiedOnly] = useState(true);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+
+  // Fetch agencies on component mount
+  useEffect(() => {
+    const fetchAgencies = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/agencies');
+        console.log('API Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API Error:', errorText);
+          throw new Error(`Failed to fetch agencies: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setAgencies(data.agencies || []);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching agencies:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch agencies');
+        // Fallback to empty array
+        setAgencies([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAgencies();
+  }, []);
 
   // Check if any filters are active
   const hasActiveFilters = () => {
     return location !== "" || 
-           Object.values(careTypes).some(Boolean) ||
+           !Object.values(careTypes).every(Boolean) || // If not all care types are selected
            priceRange !== "" ||
-           Object.values(genderPreference).some(Boolean) ||
-           Object.values(specialtyServices).some(Boolean) ||
-           Object.values(ratings).some(Boolean) ||
+           !Object.values(genderPreference).every(Boolean) || // If not all gender preferences are selected
+           !Object.values(specialtyServices).every(Boolean) || // If not all specialty services are selected
+           !Object.values(ratings).every(Boolean) || // If not all ratings are selected
            verifiedOnly;
+  };
+
+  // Filter agencies based on all criteria
+  const filteredAgencies = useMemo(() => {
+    return agencies.filter(agency => {
+      // Search query filter
+      if (searchQuery && searchQuery.trim() !== "") {
+        const query = searchQuery.toLowerCase();
+        const matchesName = agency.name.toLowerCase().includes(query);
+        const matchesAddress = agency.address.toLowerCase().includes(query);
+        const matchesSpecialties = agency.specialties.some(specialty => 
+          specialty.toLowerCase().includes(query)
+        );
+        
+        if (!matchesName && !matchesAddress && !matchesSpecialties) {
+          return false;
+        }
+      }
+
+      // Location filter (if location is specified)
+      if (location && location.trim() !== "") {
+        const agencyLocation = agency.address.toLowerCase();
+        const searchLocation = location.toLowerCase();
+        if (!agencyLocation.includes(searchLocation)) {
+          return false;
+        }
+      }
+
+      // Care type filter
+      const selectedCareTypes = Object.entries(careTypes)
+        .filter(([_, selected]) => selected)
+        .map(([type, _]) => type);
+      
+      if (selectedCareTypes.length > 0) {
+        const hasMatchingCareType = selectedCareTypes.some(careType => {
+          // Map care types to specialties (more flexible matching)
+          const careTypeMapping: { [key: string]: string[] } = {
+            "In-Home Care": ["In-Home Care", "Personal Care", "24-Hour Care", "Transfers", "Feeding", "Transportation"],
+            "Assisted Living": ["Assisted Living", "Personal Care", "24-Hour Care", "Transfers", "Feeding"],
+            "Nursing Home": ["Nursing Home", "24-Hour Care", "Transfers", "Feeding", "Medical Care"],
+            "Memory Care": ["Memory Care", "Alzheimer's / Dementia Care", "Dementia", "Anxiety Reduction", "24-Hour Care"],
+            "Respite Care": ["Respite Care", "24-Hour Care", "Transfers", "Feeding", "Transportation"],
+            "Hospice Care": ["Hospice Care", "Palliative Care", "24-Hour Care", "Anxiety Reduction"]
+          };
+          
+          const specialties = careTypeMapping[careType] || [];
+          return specialties.some(specialty => 
+            agency.specialties.some(agencySpecialty => 
+              agencySpecialty.toLowerCase().includes(specialty.toLowerCase())
+            )
+          );
+        });
+        
+        if (!hasMatchingCareType) {
+          return false;
+        }
+      }
+
+      // Price range filter
+      if (priceRange) {
+        const agencyPrice = agency.priceRange;
+        const priceMatch = {
+          "under-15k": agencyPrice.includes("$500") || agencyPrice.includes("$600") || 
+                      agencyPrice.includes("$800") || agencyPrice.includes("$1200"),
+          "15k-25k": agencyPrice.includes("$1500") || agencyPrice.includes("$1800") || 
+                    agencyPrice.includes("$2000") || agencyPrice.includes("$2200"),
+          "25k-40k": agencyPrice.includes("$3000") || agencyPrice.includes("$3500"),
+          "40k-plus": agencyPrice.includes("$5000"),
+          "flexible": true
+        };
+        
+        if (!priceMatch[priceRange as keyof typeof priceMatch]) {
+          return false;
+        }
+      }
+
+      // Specialty services filter
+      const selectedSpecialties = Object.entries(specialtyServices)
+        .filter(([_, selected]) => selected)
+        .map(([service, _]) => service);
+      
+      if (selectedSpecialties.length > 0) {
+        const hasMatchingSpecialty = selectedSpecialties.some(specialty => 
+          agency.specialties.some(agencySpecialty => 
+            agencySpecialty.toLowerCase().includes(specialty.toLowerCase()) ||
+            specialty.toLowerCase().includes(agencySpecialty.toLowerCase())
+          )
+        );
+        
+        if (!hasMatchingSpecialty) {
+          return false;
+        }
+      }
+
+      // Rating filter
+      const selectedRatings = Object.entries(ratings)
+        .filter(([_, selected]) => selected)
+        .map(([rating, _]) => rating);
+      
+      if (selectedRatings.length > 0) {
+        const ratingMatch = {
+          "All": true,
+          "3 stars & up": agency.rating >= 3.0,
+          "4 stars & up": agency.rating >= 4.0,
+          "5 stars only": agency.rating >= 5.0
+        };
+        
+        const hasMatchingRating = selectedRatings.some(rating => 
+          ratingMatch[rating as keyof typeof ratingMatch]
+        );
+        
+        if (!hasMatchingRating) {
+          return false;
+        }
+      }
+
+      // Verified providers filter (mock implementation)
+      if (verifiedOnly) {
+        // For demo purposes, assume agencies with rating >= 4.5 are verified
+        if (agency.rating < 4.5) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [searchQuery, location, careTypes, priceRange, specialtyServices, ratings, verifiedOnly, agencies]);
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setLocation("");
+    setCareTypes({
+      "In-Home Care": true,
+      "Assisted Living": true,
+      "Nursing Home": true,
+      "Memory Care": true,
+      "Respite Care": true,
+      "Hospice Care": true
+    });
+    setPriceRange("");
+    setGenderPreference({
+      "Male Caregiver": true,
+      "Female Caregiver": false,
+      "No Preference": true
+    });
+    setSpecialtyServices({
+      "24-Hour Care": true,
+      "Transfers": true,
+      "Transportation": true,
+      "Feeding": true,
+      "Anxiety Reduction": true,
+      "Alzheimer's / Dementia Care": true,
+      "Stroke Recovery": true,
+      "Diabetes Management": true,
+      "24/7 Nursing Staff": true,
+      "Limited Mobility Support": true,
+      "Post-Surgery Care": true,
+      "Cancer Support": true,
+      "Palliative Care": true
+    });
+    setRatings({
+      "All": true,
+      "3 stars & up": true,
+      "4 stars & up": true,
+      "5 stars only": true
+    });
+    setVerifiedOnly(false);
   };
 
   const toggleFavorite = (agencyId: string) => {
@@ -179,13 +324,116 @@ export default function FamilyDashboardClient() {
     setRatings(prev => ({ ...prev, [rating]: checked }));
   };
 
+  const handleInvite = async (agency: Agency) => {
+    try {
+      setInviteLoading(agency.id);
+      
+      // Get current family info
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please log in to send invitations');
+        return;
+      }
+
+      const { data: family } = await supabase
+        .from('families')
+        .select('full_name')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!family) {
+        toast.error('Family profile not found');
+        return;
+      }
+
+      const response = await fetch('/api/chat/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agencyId: agency.id,
+          familyUserId: user.id,
+          familyName: family.full_name || 'Family',
+          agencyName: agency.name
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        if (result.exists) {
+          toast.success('Invitation sent to existing conversation!');
+        } else {
+          toast.success('Invitation sent! Check your messages for their response.');
+        }
+        router.push('/family/messages');
+      } else {
+        toast.error(result.error || 'Failed to send invitation');
+      }
+    } catch (error) {
+      console.error('Error sending invitation:', error);
+      toast.error('Failed to send invitation');
+    } finally {
+      setInviteLoading(null);
+    }
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Search</h1>
+            <p className="text-gray-600">Loading agencies...</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="overflow-hidden bg-white animate-pulse">
+              <div className="h-48 bg-gray-200"></div>
+              <CardContent className="p-4">
+                <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded mb-4"></div>
+                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Search</h1>
+            <p className="text-gray-600">Error loading agencies</p>
+          </div>
+        </div>
+        <div className="text-center py-12">
+          <div className="text-red-500 text-lg mb-2">Failed to load agencies</div>
+          <p className="text-gray-400 mb-4">{error}</p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            variant="outline"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Search Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Search</h1>
-          <p className="text-gray-600">Showing results 20</p>
+          <p className="text-gray-600">Showing {filteredAgencies.length} results</p>
         </div>
         <div className="flex items-center space-x-4">
           <div className="relative">
@@ -193,7 +441,7 @@ export default function FamilyDashboardClient() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="John Doe, 123456"
+              placeholder="Search agencies, locations, or services..."
               className="w-64"
             />
           </div>
@@ -210,8 +458,17 @@ export default function FamilyDashboardClient() {
       </div>
 
       {/* Agency Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {agencies.map((agency) => (
+      {filteredAgencies.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-gray-500 text-lg mb-2">No agencies found</div>
+          <p className="text-gray-400 mb-4">Try adjusting your search criteria or filters</p>
+          <Button variant="outline" onClick={clearAllFilters}>
+            Clear All Filters
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredAgencies.map((agency) => (
           <Card 
             key={agency.id} 
             className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer flex flex-col h-full bg-white"
@@ -228,7 +485,10 @@ export default function FamilyDashboardClient() {
                 className="w-full h-48 object-cover"
               />
               {/* Match Badge */}
-              <Badge className="absolute top-3 left-3 bg-green-600 text-white rounded-md px-2 py-1 text-sm font-medium">
+              <Badge 
+                className="absolute top-3 left-3 text-white rounded-md px-2 py-1 text-sm font-medium"
+                style={{ backgroundColor: '#71A37A' }}
+              >
                 Matched {agency.matchPercentage}%
               </Badge>
               {/* Favorite Button */}
@@ -298,13 +558,19 @@ export default function FamilyDashboardClient() {
                   variant="outline" 
                   className="flex-1 text-gray-700 rounded-none border-gray-200"
                   style={{ backgroundColor: 'transparent' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleInvite(agency);
+                  }}
+                  disabled={inviteLoading === agency.id}
                 >
                   <Calendar className="w-4 h-4 mr-2" />
-                  INVITE
+                  {inviteLoading === agency.id ? 'SENDING...' : 'INVITE'}
                 </Button>
                 <Button 
                   className="flex-1 text-white rounded-none"
                   style={{ backgroundColor: '#71A37A' }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   MESSAGE
@@ -312,8 +578,9 @@ export default function FamilyDashboardClient() {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Filter Modal */}
       <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
@@ -456,13 +723,18 @@ export default function FamilyDashboardClient() {
           </div>
 
           {/* Filter Actions */}
-          <div className="flex justify-end space-x-4 mt-8 pt-6 border-t">
-            <Button variant="outline" onClick={() => setIsFilterOpen(false)}>
-              Cancel
+          <div className="flex justify-between mt-8 pt-6 border-t">
+            <Button variant="outline" onClick={clearAllFilters}>
+              Clear All Filters
             </Button>
-            <Button onClick={() => setIsFilterOpen(false)}>
-              Apply Filters
-            </Button>
+            <div className="flex space-x-4">
+              <Button variant="outline" onClick={() => setIsFilterOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => setIsFilterOpen(false)}>
+                Apply Filters
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
